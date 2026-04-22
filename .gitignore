@@ -1,0 +1,33 @@
+# Compilations Rust
+target/
+Cargo.lock
+
+# Fichiers temporaires
+*.o
+*.obj
+*.bin
+*.iso
+*.img
+*.tmp
+*.log
+
+# QEMU
+*.qcow2
+*.vdi
+*.vmdk
+*.nvram
+
+# Dumps / traces
+*.map
+*.sym
+*.lst
+
+# Éditeurs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OSDev specific
+build/
+out/
