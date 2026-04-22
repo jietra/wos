@@ -1,0 +1,20 @@
+[build]
+target = "targets/aarch64-wos.json"
+
+[unstable]
+build-std = ["core"]
+json-target-spec = true
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"
+
+[toolchain]
+channel = "nightly"
+
+[target.aarch64-wos]
+rustflags = [
+  "-C", "link-arg=-Tlinker.ld",
+]

@@ -9,25 +9,47 @@ The goal is to explore new architectures where machine learning primitives are f
 For the theoretical foundations behind the AI-native memory system used in WOS, see the companion research paper:  
 https://arxiv.org/abs/2604.16052
 
+---
+
 ## Features (Work in Progress)
 
-- Minimal Rust-based kernel
-- Custom ARM64 bootloader
-- Native AI core using optimal transport
+- Minimal Rust-based ARM64 kernel
+- Custom ARM64 bootloader and early startup code
+- AI-Native core using optimal transport
 - Modular architecture for experimentation
 - QEMU-friendly development environment
 
+---
+
 ## Project Structure
 
-- `/src` — Kernel source code  
-- `/boot` — Bootloader and early startup code  
+- `/kernel` — Rust Kernel (no_std, no_main)  
+- `/boot` — Early boot code (AArch64)  
 - `/build` — Build artifacts (ignored by Git)  
 - `/docs` — Technical documentation  
 
+The kernel lives entirely under `/kernel/`, including the assembly entrypoint, linker script, and Rust sources.
+
+---
+
 ## Build Instructions
 
-Make sure Rust and the required toolchains are installed.
+Make sure Rust (nightly) and the required AArch64 toolchains are installed.
 
+From the project root:
+
+```bash
+cd kernel
+cargo build
+```
+
+This produces the kernel ELF at:
+
+```bash
+kernel/target/aarch64-wos/debug/kernel
+```
+
+---
 
 ## Run in QEMU (ARM64)
 
@@ -35,15 +57,23 @@ Make sure Rust and the required toolchains are installed.
 qemu-system-aarch64 \
     -M virt \
     -cpu cortex-a72 \
-    -kernel target/aarch64/debug/wos \
+    -kernel kernel/target/aarch64-wos/debug/kernel \
     -nographic
 ```
+
+---
 
 ## Status
 
 This project is in early development and not yet functional as a full OS.
 
-The goal is to progressively build a minimal kernel and integrate AI-native components.
+The current focus area include:
+- building a minimal Rust kernel from scratch
+- validating the boot pipeline
+- implementing UART output
+- preparing the foundation for AI‑native memory structures
+
+---
 
 ## Roadmap
 
@@ -54,6 +84,8 @@ The goal is to progressively build a minimal kernel and integrate AI-native comp
 - [ ] Wasserstein core module
 - [ ] Sinkhorn solver integration
 - [ ] QEMU test harness
+
+---
 
 ## License
 
