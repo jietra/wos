@@ -2,8 +2,12 @@
 
 # WOS — Wasserstein Operating System
 
-WOS is an experimental operating system designed around a native AI engine based on optimal transport theory, including Wasserstein distances and Sinkhorn algorithms.  
+WOS is an experimental operating system designed around a native AI engine based on optimal transport theory, including Wasserstein distances and Sinkhorn algorithms.
+
 The goal is to explore new architectures where machine learning primitives are first‑class citizens of the kernel.
+
+For the theoretical foundations behind the AI-native memory system used in WOS, see the companion research paper:  
+https://arxiv.org/abs/2604.16052
 
 ## Features (Work in Progress)
 
@@ -37,7 +41,8 @@ qemu-system-aarch64 \
 
 ## Status
 
-This project is in early development and not yet functional as a full OS.  
+This project is in early development and not yet functional as a full OS.
+
 The goal is to progressively build a minimal kernel and integrate AI-native components.
 
 ## Roadmap
