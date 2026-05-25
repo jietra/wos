@@ -23,25 +23,11 @@ _start:
 "#
 );
 
-// Let the linker know about the exception vectors (required for interrupts, etc.)
-global_asm!(include_str!("../boot/exception_vectors.S"));
-
-// Declare the exception vectors symbol (defined in assembly) so Rust can reference it if needed
-extern "C" {
-    static exception_vectors: u8;
-}
-
 // -----------------------------------------------------------------------------
 // Rust entry point
 // -----------------------------------------------------------------------------
 #[no_mangle]
 pub extern "C" fn rust_main() {
-    // Initialize exception vectors
-    unsafe { init_exceptions(); }
-
-    // Test: trigger a breakpoint exception to verify our exception handling works
-    // unsafe { core::arch::asm!("brk #0"); }
-
     // C‑style null‑terminated string
     let msg = b"Hello from Rust kernel!\n\0";
     uart_puts(msg.as_ptr());
@@ -84,26 +70,6 @@ pub extern "C" fn memcmp(a: *const u8, b: *const u8, n: usize) -> i32 {
         }
     }
     0
-}
-
-// -----------------------------------------------------------------------------
-// Exception vector initialization (sets VBAR_EL1 to point to our exception vectors)
-// -----------------------------------------------------------------------------
-
-unsafe fn init_exceptions() {
-    extern "C" {
-        static exception_vectors: u8;
-    }
-
-    let addr = unsafe { &exception_vectors as *const _ as u64 };
-
-    unsafe {
-        core::arch::asm!(
-            "msr VBAR_EL1, {0}",
-            in(reg) addr,
-            options(nostack, preserves_flags),
-        );
-    }
 }
 
 // -----------------------------------------------------------------------------
