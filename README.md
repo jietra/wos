@@ -93,6 +93,8 @@ qemu-system-aarch64 \
     -nographic
 ```
 
+---
+
 ## 📌 Current Status
 
 WOS is not yet a full operating system.
@@ -105,16 +107,18 @@ It is a functional minimal kernel, serving as a foundation for:
 
 ## 🗺️ Roadmap (Kernel)
 
-[x] ARM64 boot + Rust kernel
-[x] UART output
-[x] MMU + page tables
-[x] Physical page allocator
-[ ] Interrupts + timer
-[ ] Virtual memory allocator (heap)
-[ ] Minimal scheduler
-[ ] Drivers (UART, timer, virtio)
-[ ] User space
-[ ] ELF loader
+- [x] ARM64 boot + Rust kernel
+- [x] UART output
+- [x] MMU + page tables
+- [x] Physical page allocator
+- [ ] Interrupts + timer
+- [ ] Virtual memory allocator (heap)
+- [ ] Minimal scheduler
+- [ ] Drivers (UART, timer, virtio)
+- [ ] User space
+- [ ] ELF loader
+
+---
 
 ## 🤝 Contributing
 WOS is still in an early experimental stage, but contributions are welcome — especially in the areas of:
@@ -151,6 +155,8 @@ If you are interested in the research direction or want to discuss ideas, feel f
 4. Keep the scope minimal and focused
 
 If you're unsure whether a contribution fits the project, feel free to open an issue first.
+
+---
 
 ## 📜 License
 WOS uses a **dual licensing model**:
