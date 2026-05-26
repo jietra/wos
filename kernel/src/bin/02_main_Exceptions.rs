@@ -24,9 +24,10 @@ _start:
 );
 
 // Let the linker know about the exception vectors (required for interrupts, etc.)
-global_asm!(include_str!("../boot/exception_vectors.S"));
+global_asm!(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/boot/exception_vectors.S")));
 
 // Declare the exception vectors symbol (defined in assembly) so Rust can reference it if needed
+#[allow(dead_code)]
 extern "C" {
     static exception_vectors: u8;
 }

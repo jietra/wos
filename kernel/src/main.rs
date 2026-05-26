@@ -24,7 +24,7 @@ _start:
 );
 
 // Let the linker know about the exception vectors (required for interrupts, etc.)
-global_asm!(include_str!("../boot/exception_vectors.S"));
+global_asm!(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/boot/exception_vectors.S")));
 
 // -----------------------------------------------------------------------------
 // Exception vector initialization (sets VBAR_EL1 to point to our exception vectors)
