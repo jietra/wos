@@ -53,30 +53,6 @@ extern "C" {
 }
 
 // -----------------------------------------------------------------------------
-// Simple physical page allocator (bump allocator)
-// -----------------------------------------------------------------------------
-static mut NEXT_FREE_PHYS: u64 = 0;
-static mut PHYS_LIMIT: u64 = 0;
-
-unsafe fn init_phys_alloc() {
-    let end = &_kernel_end as *const u8 as u64;
-    let aligned = (end + 0xFFF) & !0xFFF; // Align to the next 4 KB boundary
-
-    NEXT_FREE_PHYS = aligned;
-    PHYS_LIMIT = 0x8000_0000; // For simplicity, we set an arbitrary limit of 2 Go for physical memory. In a real kernel, you'd want to detect the actual amount of RAM and set this accordingly.
-}
-
-unsafe fn alloc_page() -> Option<u64> {
-    // For simplicity, we just return the next free physical address and increment it by 4 KB for the next allocation. In a real kernel, you'd want to add bounds checking and support for freeing pages, etc.
-    if NEXT_FREE_PHYS + 0x1000 > PHYS_LIMIT {
-        return None;
-    }
-    let p = NEXT_FREE_PHYS;
-    NEXT_FREE_PHYS += 0x1000;
-    Some(p)
-}
-
-// -----------------------------------------------------------------------------
 // Minimal page tables (4-level, 512 entries each, 4KB pages)
 // -----------------------------------------------------------------------------
 #[repr(align(4096))]
@@ -85,6 +61,7 @@ struct PageTable([u64; 512]);
 static mut L0_TABLE: PageTable = PageTable([0; 512]);
 static mut L1_TABLE: PageTable = PageTable([0; 512]);
 static mut L2_KERNEL_TABLE: PageTable = PageTable([0; 512]);
+//static mut L3_KERNEL_TABLE: PageTable = PageTable([0; 512]);
 
 // -----------------------------------------------------------------------------
 // Rust entry point
@@ -100,44 +77,6 @@ pub extern "C" fn rust_main() {
         init_page_tables();
         init_ttbr0();
         enable_mmu();
-        init_phys_alloc();
-    }
-
-    // Test the MMU by allocating some pages and writing to them. If the MMU is working correctly, we should be able to read back the same values without causing a fault. In a real kernel, you'd want to add proper error handling and support for freeing pages, etc.
-    unsafe {
-        let p1 = alloc_page().unwrap();
-        let p2 = alloc_page().unwrap();
-
-        // Write some test data to the allocated pages to verify that the MMU is working correctly. In a real kernel, you'd want to add proper error handling and support for freeing pages, etc.
-        let ptr1 = p1 as *mut u64;
-        let ptr2 = p2 as *mut u64;
-        *ptr1 = 0xDEAD_BEEF_DEAD_BEEF;
-        *ptr2 = 0xCAFEBABE_CAFEBABE;
-    }
-    uart_puts(b"alloc OK\n\0".as_ptr());
-
-    unsafe {
-        if let Some(p1) = alloc_page() {
-            if let Some(p2) = alloc_page() {
-                let ptr1 = p1 as *mut u64;
-                let ptr2 = p2 as *mut u64;
-
-                *ptr1 = 0xDEAD_BEEF_DEAD_BEEF;
-                *ptr2 = 0xCAFEBABE_CAFEBABE;
-
-                // raw print the allocated physical addresses and the values we wrote to them to verify that the MMU is working correctly. In a real kernel, you'd want to add proper error handling and support for freeing pages, etc.
-                uart_puts(b"alloc p1 = 0x\0".as_ptr());
-                uart_put_hex_ln(p1);
-
-                uart_puts(b"alloc p2 = 0x\0".as_ptr());
-                uart_put_hex_ln(p2);
-                // Note: we can't use Rust's formatting macros since we're in no_std, so we just print the raw values in hexadecimal manually. In a real kernel, you'd want to implement a proper formatting function to make this easier.
-            } else {
-                uart_puts(b"alloc p2 failed\n\0".as_ptr());
-            }
-        } else {
-            uart_puts(b"alloc p1 failed\n\0".as_ptr());
-        }
     }
 
     // C‑style null‑terminated string
@@ -249,6 +188,8 @@ fn l1_block_entry(phys: u64, attr_index: u64, executable: bool) -> u64 {
         (1 << 10) |                      // AF
         (3 << 8)  |                      // SH = Inner Shareable
         (0 << 6)  |                      // AP = RW EL1
+        //(1 << 54) |                       // PXN
+        //(1 << 53) |                       // UXN
         0b01;                            // VALID + BLOCK
 
     if !executable {
@@ -275,7 +216,58 @@ fn l2_block_entry(phys: u64, attr_index: u64, executable: bool) -> u64 {
 
     desc
 }
+/*
+// Maps the given physical address range [start, end) in the given L2 page table with 2 MB blocks
+unsafe fn map_section_l2(
+    l2: &mut PageTable,
+    base_phys: u64,
+    start: u64,
+    end: u64,
+    executable: bool,
+) {
+    let first = ((start - base_phys) >> 21) as usize;
+    let last  = ((end   - base_phys) >> 21) as usize;
 
+    for i in first..=last {
+        let phys = base_phys + ((i as u64) << 21);
+        l2.0[i] = l2_block_entry(phys, 2, executable);
+    }
+}
+
+// Helper function to create a page entry in the L3 page table (maps 4 KB pages)
+fn l3_page_entry(phys: u64, attr_index: u64, executable: bool) -> u64 {
+    let mut desc =
+        (phys & !((1u64 << 12) - 1)) | // align 4K
+        (attr_index << 2) |
+        (1 << 10) |  // AF
+        (3 << 8)  |  // SH = Inner Shareable
+        (0 << 6)  |  // AP = RW EL1
+        0b11;        // VALID + PAGE (L3)
+
+    if !executable {
+        desc |= (1 << 54) | (1 << 53); // PXN + UXN
+    }
+
+    desc
+}
+
+// Maps the given physical address range [start, end) in the given L3 page table with 4 KB pages
+unsafe fn map_section_l3(
+    l3: *mut PageTable,
+    base_phys: u64,
+    start: u64,
+    end: u64,
+    executable: bool,
+) {
+    let first = ((start - base_phys) >> 12) as usize;
+    let last  = ((end   - base_phys) >> 12) as usize;
+
+    for i in first..=last {
+        let phys = base_phys + ((i as u64) << 12);
+        (*l3).0[i] = l3_page_entry(phys, 2, executable);
+    }
+}
+*/
 unsafe fn init_page_tables() {
     // L0[0] -> L1
     L0_TABLE.0[0] = (&raw const L1_TABLE as *const _ as u64) | 0b11;
@@ -303,6 +295,56 @@ unsafe fn init_page_tables() {
         // For now: we mark the whole 1–2 Go region as executable, but in a real kernel you'd want to mark only the actual code sections as executable and the rest (data, bss, peripherals) as non-executable
         L2_KERNEL_TABLE.0[i] = l2_block_entry(phys, 2, true);
     }
+
+    /*
+    // L2[0] -> L3_KERNEL)
+    L2_KERNEL_TABLE.0[0] = (&raw const L3_KERNEL_TABLE as *const _ as u64) | 0b11;
+    // we now have:
+    // VA = 0x4008_0000
+    // base L1[1] = 0x4000_0000
+    // offset = 0x80000
+    // offset >> 21 = 0 -> L2 index 0
+
+    // Map L3
+    
+    let base = 1u64 << 30; // 0x4000_0000
+
+    // .text → executable
+    map_section_l3(
+        &raw mut L3_KERNEL_TABLE,
+        base,
+        &_text_start as *const u8 as u64,
+        &_text_end   as *const u8 as u64,
+        true,
+    );
+
+    // .rodata → non executable
+    map_section_l3(
+        &raw mut L3_KERNEL_TABLE,
+        base,
+        &_rodata_start as *const u8 as u64,
+        &_rodata_end   as *const u8 as u64,
+        false,
+    );
+
+    // .data → non executable
+    map_section_l3(
+        &raw mut L3_KERNEL_TABLE,
+        base,
+        &_data_start as *const u8 as u64,
+        &_data_end   as *const u8 as u64,
+        false,
+    );
+
+    // .bss → non executable
+    map_section_l3(
+        &raw mut L3_KERNEL_TABLE,
+        base,
+        &_bss_start as *const u8 as u64,
+        &_bss_end   as *const u8 as u64,
+        false,
+    );
+    */
 }
 
 // -----------------------------------------------------------------------------
@@ -367,22 +409,4 @@ fn uart_puts(s: *const u8) {
             p = p.add(1);
         }
     }
-}
-
-fn uart_put_hex(v: u64) {
-    // Print a 64-bit value in hexadecimal (16 hex digits) without using any Rust formatting macros since we're in no_std. In a real kernel, you'd want to implement a proper formatting function to make this easier.
-    for i in (0..16).rev() {
-        let nibble = ((v >> (i * 4)) & 0xF) as u8;
-        let c = match nibble {
-            0..=9 => b'0' + nibble,
-            10..=15 => b'a' + (nibble - 10),
-            _ => b'?', // impossible
-        };
-        uart_putc(c);
-    }
-}
-
-fn uart_put_hex_ln(v: u64) {
-    uart_put_hex(v);
-    uart_putc(b'\n');
 }
