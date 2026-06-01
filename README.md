@@ -89,7 +89,7 @@ WOS runs perfectly inside a UTM ARM64 virtual machine.
 qemu-system-aarch64 \
     -M virt \
     -cpu cortex-a72 \
-    -kernel kernel/target/aarch64-wos/debug/kernel \
+    -kernel target/aarch64-wos/debug/kernel \
     -nographic
 ```
 
