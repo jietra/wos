@@ -1,3 +1,5 @@
+// src/debug/cpu.rs
+
 use crate::drivers::uart::puts;
 use crate::utils::print::put_hex_ln;
 

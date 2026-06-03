@@ -1,5 +1,4 @@
-use crate::arch::aarch64::linker_symbols::_kernel_start;
-use crate::arch::aarch64::linker_symbols::_kernel_end;
+use crate::arch::aarch64::linker_symbols as ls;
 
 // -----------------------------------------------------------------------------
 // Minimal page tables
@@ -10,7 +9,8 @@ pub struct PageTable(pub [u64; 512]);
 
 pub static mut L0_TABLE: PageTable = PageTable([0; 512]);
 pub static mut L1_TABLE: PageTable = PageTable([0; 512]);
-pub static mut L2_KERNEL_TABLE: PageTable = PageTable([0; 512]);
+pub static mut L2_TABLE: PageTable = PageTable([0; 512]);
+pub static mut L3_KERNEL_TABLE: PageTable = PageTable([0; 512]);
 
 // Helper function to create a block entry in the page table
 pub fn l1_block_entry(phys: u64, attr: u64, exec: bool) -> u64 {
@@ -29,15 +29,15 @@ pub fn l1_block_entry(phys: u64, attr: u64, exec: bool) -> u64 {
     desc
 }
 
-// Helper function to create a block entry in the L2 page table (maps 2 MB blocks)
-pub fn l2_block_entry(phys: u64, attr_index: u64, executable: bool) -> u64 {
+// Helper function
+pub fn l3_page_entry(phys: u64, attr_index: u64, executable: bool, ap: u64) -> u64 {
     let mut desc =
-        (phys & !((1u64 << 21) - 1)) | // align 2 Mo
+        (phys & !((1u64 << 12) - 1)) |      // align 4 KiB
         (attr_index << 2) |
-        (1 << 10) |
-        (3 << 8)  |
-        (0 << 6)  |
-        0b01; // VALID + BLOCK (L2)
+        (1 << 10) |                         // AF
+        (3 << 8)  |                         // SH = Inner Shareable
+        (ap << 6)  |                        // AP bits
+        0b11;                               // VALID + PAGE
 
     if !executable {
         desc |= (1 << 54) | (1 << 53); // PXN + UXN
@@ -46,36 +46,54 @@ pub fn l2_block_entry(phys: u64, attr_index: u64, executable: bool) -> u64 {
     desc
 }
 
+// Helper functions to map .text
+pub unsafe fn map_kernel_l3() {
+    let l1_1_base = 1u64 << 30;     // 0x4000_0000
+
+    let text_start   = &ls::_text_start   as *const u8 as u64;
+    let text_end     = &ls::_text_end     as *const u8 as u64;
+    let rodata_start = &ls::_rodata_start as *const u8 as u64;
+    let rodata_end   = &ls::_rodata_end   as *const u8 as u64;
+    let data_start   = &ls::_data_start   as *const u8 as u64;
+    let data_end     = &ls::_data_end     as *const u8 as u64;
+    let bss_start    = &ls::_bss_start    as *const u8 as u64;
+    let bss_end      = &ls::_bss_end      as *const u8 as u64;
+
+    // Suppose all fits in the same 2 MiB bloc
+    let l2_index = (((text_start - l1_1_base) >> 21) & 0x1FF) as usize;
+    let l2_region_base = l1_1_base + ((l2_index as u64) << 21);
+
+    // L2 -> L3
+    L2_TABLE.0[l2_index] = (&raw const L3_KERNEL_TABLE as *const _ as u64) | 0b11;
+
+    // Fills the 512 4K pages of the 2 MiB bloc
+    for i in 0..512 {
+        let va = l2_region_base + ((i as u64) << 12);
+        let phys = va;              // identity mapping
+
+        let (attr_index, ap, exec) = if va >= text_start && va < text_end {
+            (2, 0b10, true)         // .text : Normal WB, RO, executable
+        } else if va >= rodata_start && va < rodata_end {
+            (2, 0b10, false)        // .rodata : Normal WB, RO, XN
+        } else if (va >= data_start && va < data_end) || (va >= bss_start && va < bss_end) {
+            (2, 0b00, false)        // .data/.bss : Normal WB, RW, XN
+        } else {
+            (2, 0b00, false)        // the rest: RW, XN
+        };
+
+        L3_KERNEL_TABLE.0[i] = l3_page_entry(phys, attr_index, exec, ap);
+    }
+}
+
 // -----------------------------------------------------------------------------
 // Minimal page tables initialization
 // (maps 0x4008_0000 for kernel and 0x0900_0000 for UART)
 // -----------------------------------------------------------------------------
 pub unsafe fn init_page_tables() {
-    // L0[0] -> L1
-    L0_TABLE.0[0] = (&raw const L1_TABLE as *const _ as u64) | 0b11;
+    L0_TABLE.0[0] = (&raw const L1_TABLE as *const _ as u64) | 0b11;    // L0[0] -> L1
 
-    // L1[0]: 0–1 Go: Device // identity mapping of the first 1 Go of physical memory (where the kernel and peripherals are located) in Normal WB, RW, executable
-    //let phys0 = 0u64 << 30;
-    //L1_TABLE.0[0] = l1_block_entry(phys0, 2, true);
-    L1_TABLE.0[0] = l1_block_entry(0, 0, false);
+    L1_TABLE.0[0] = l1_block_entry(0, 0, false);                        // L1[0]: 0–1 Go: Device
+    L1_TABLE.0[1] = (&raw const L2_TABLE as *const _ as u64) | 0b11;    // L1[1]: 1–2 Go -> KERNEL
 
-    // L1[1]: 1–2 Go -> table L2_KERNEL
-    L1_TABLE.0[1] = (&raw const L2_KERNEL_TABLE as *const _ as u64) | 0b11;
-
-    // Fill L2_KERNEL_TABLE with 2 Mo blocks mapping kernel region (0x4008_0000–0x7FFF_FFFF) in Normal WB, RW, executable
-    // 1-2 Go region base physical address (where kernel is loaded by bootloader, defined in linker script) – assuming kernel is loaded at 1 Go (0x4000_0000) for simplicity. In a real kernel, read the actual load address from the DTB and use that instead.
-    let l1_1_base_phys = 1u64 << 30; // 0x4000_0000
-    // Start/End kernel virtual addresses (identical to physical since on identity mapping + Virtual Address = Physical Address for 1–2 Go) defined in linker script.
-    let kernel_start = &_kernel_start as *const u8 as u64;
-    let kernel_end   = &_kernel_end   as *const u8 as u64;
-    // Compute first and last L2 indices that cover the kernel region
-    // L1[1] covers 0x4000_0000–0x7FFF_FFFF
-    // L2 index = bits [29:21]
-    let first_l2 = (((kernel_start - l1_1_base_phys) >> 21) & 0x1FF) as usize;
-    let last_l2  = (((kernel_end   - l1_1_base_phys) >> 21) & 0x1FF) as usize;
-    for i in first_l2..=last_l2 {
-        let phys = l1_1_base_phys + ((i as u64) << 21); // 2 Mo
-        // For now: we mark the whole 1–2 Go region as executable. In real kernel, mark only the actual code sections as executable and the rest (data, bss, peripherals) as non-executable
-        L2_KERNEL_TABLE.0[i] = l2_block_entry(phys, 2, true);
-    }
+    map_kernel_l3();
 }

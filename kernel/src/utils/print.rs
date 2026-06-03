@@ -17,3 +17,28 @@ pub fn put_hex_ln(v: u64) {
     put_hex(v);
     putc(b'\n');
 }
+
+pub fn print(s: &str) {
+    for b in s.as_bytes() {
+        putc(*b);
+    }
+}
+
+pub fn println(s: &str) {
+    print(s);
+    putc(b'\n');
+}
+
+#[macro_export]
+macro_rules! print {
+    ($s:expr) => {
+        $crate::utils::print::print($s);
+    };
+}
+
+#[macro_export]
+macro_rules! println {
+    ($s:expr) => {
+        $crate::utils::print::println($s);
+    };
+}

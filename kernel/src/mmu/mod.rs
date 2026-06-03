@@ -1,5 +1,4 @@
 pub mod tables;
-pub mod alloc;
 
 pub use tables::init_page_tables;
 pub use tables::L0_TABLE;

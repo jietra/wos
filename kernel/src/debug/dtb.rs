@@ -1,21 +1,20 @@
-// src/dtb.rs
-// DTB parser, for debugging purposes, in order to build GIC
+// src/debug/dtb.rs
 
 use crate::drivers::uart::{puts, putc};
 use crate::utils::print::put_hex_ln;
 
+pub static DTB: &[u8] = include_bytes!("../../virt.dtb");
+
 /*
-// In case of missalignment. In this case, use dtb = DTB.0 to get the aligned slice,
-// but since we use include_bytes! which places the data in the .rodata section,
-// it should already be properly aligned and we can directly use the included bytes without copying.
-// If we were to copy it, we would need to ensure that the destination buffer is properly aligned
-// (e.g. using a static mutable buffer with #[repr(align(4))] or similar) and then copy the data from the included bytes to that buffer at runtime before parsing it.
+// In case of missalignment use:
 #[repr(align(4))]
 pub struct Aligned<T>(pub T);
 // DTB aligned, no copying needed since we can directly use the included bytes (which are already in the .rodata section and thus accessible at runtime)
 pub static DTB: Aligned<&[u8]> = Aligned(include_bytes!("../virt.dtb"));
+// in which case, use dtb = DTB.0 to get the aligned slice.
+// Since we use include_bytes! which places the data in the .rodata section,
+// it should already be properly aligned and we can use the included bytes without copying.
 */
-pub static DTB: &[u8] = include_bytes!("../../virt.dtb");
 
 // --- Debug: print some info about the DTB (for debugging purposes) --------------------------------
 pub unsafe fn debug_dtb() {

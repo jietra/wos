@@ -1,4 +1,4 @@
-![Status](https://img.shields.io/badge/status-experimental-orange)
+![Status](https://img.shields.io/badge/status-kernel_ready-brightgreen)
 
 # WOS — W. Operating System
 
@@ -8,8 +8,13 @@ At its current stage, WOS is a **minimal, clean, and educational kernel**, imple
 
 - custom ARM64 boot pipeline  
 - EL1 CPU initialization  
-- full MMU setup (MAIR, TCR, TTBR0, SCTLR)  
-- L0/L1/L2 page tables  
+- full MMU setup (MAIR, TCR, TTBR0, SCTLR)
+- hierarchical L0/L1/L2/L3 page tables
+- per‑section kernel mapping:
+  - .text → RX, RO
+  - .rodata → R, XN
+  - .data/.bss → RW, XN
+  - stack → RW, XN  
 - UART output  
 - physical page allocator  
 - Rust `no_std` / `no_main` environment  
@@ -19,6 +24,8 @@ This project stands out because it is **Rust-first** and **ARM64-first**, a comb
 ---
 
 ## 🎯 Project Vision
+
+WOS now includes a fully correct ARMv8 MMU with fine‑grained 4 KiB mappings, making it a solid foundation for advanced kernel features such as user space, virtual memory, and process isolation.
 
 WOS has two complementary goals:
 
@@ -50,8 +57,11 @@ The AI components are not part of the public codebase yet.
 - Minimal Rust kernel (`no_std`, `no_main`)
 - Custom AArch64 bootloader and startup code
 - UART driver (console output)
-- MMU enabled with full configuration
-- L0/L1/L2 page tables
+- Full exception handling (synchronous exceptions, data aborts, FP/SIMD traps)
+- Full ARMv8 MMU setup (MAIR, TCR, TTBR0, SCTLR)
+- 4‑level translation tables (L0/L1/L2/L3)
+- Fine‑grained 4 KiB kernel mapping (text/rodata/data/bss/stack)
+- Correct memory attributes (Normal WB, Device-nGnRnE, XN, RO/RW)
 - Physical page allocator (4K pages)
 - Hexadecimal debug output
 - QEMU‑friendly environment
@@ -60,14 +70,26 @@ The AI components are not part of the public codebase yet.
 
 ## 📁 Project Structure
 
-- `/kernel` — Rust kernel + assembly entrypoint + linker script  
-- `/boot` — Early AArch64 boot code  
-- `/docs` — Technical documentation  
-- `/build` — Build artifacts (ignored by Git)
+```bash
+/docs                   # Technical documentation
+/kernel
+  ├── src
+  │   ├── arch/aarch64  # Architecture-specific code
+  │   ├── mmu           # Page tables and MMU setup
+  │   ├── memory        # Physical memory management and allocators
+  │   ├── drivers       # UART, future DTB parsing, etc.
+  │   ├── debug         # Debug helpers (CPU, memory tests, DTB debug)
+  │   ├── utils         # Printing, helpers
+  │   └── main.rs       # Kernel entry point (Rust)
+  ├── linker.ld         # Linker script
+  └── virt.dtb          # QEMU virt machine DTB (generated)
+```
 
 ---
 
 ## 🛠️ Build Instructions
+
+The kernel now requires a 4‑level MMU‑capable ARMv8 CPU (all QEMU virt machines support this).
 
 Ensure Rust nightly and the required ARM64 toolchains are installed.
 
@@ -87,8 +109,17 @@ kernel/target/aarch64-wos/debug/kernel
 On macOS, using UTM is recommended for convenience and stability.
 WOS runs perfectly inside a UTM ARM64 virtual machine.
 
+Generate the QEMU virt machine DTB in the `kernel` Directory (generate only once):
 ```bash
-cd kernel
+qemu-system-aarch64 \
+    -M virt \
+    -cpu cortex-a72 \
+    -machine dumpdtb=virt.dtb \
+    -nographic
+```
+
+Run the kernel with the generated DTB, e.g. in `kernel` Directory:
+```bash
 qemu-system-aarch64 \
     -M virt \
     -cpu cortex-a72 \
@@ -108,45 +139,8 @@ qemu-system-aarch64   -M virt   -cpu cortex-a72   -kernel kernel8.img   -nograph
 
 ### 📝 Interrupt Controller (GIC)
 
-#### GIC Version
-This kernel uses **GICv2**, *not GICv3*. Indeed, the default QEMU `virt` machine exposes a GIC compatible with:
-```bash
-compatible = "arm,cortex-a15-gic";
-```
-
-This corresponds to **GICv2/GIC-400**, the interrupt controller used in Cortex‑A15‑class systems.
-
-No GICv3 redistributors (`GICR`) or ITS nodes are present in the Device Tree.
-
-#### Memory Mapping (from the DTB)
-The DTB provides the following `reg` entries for the interrupt controller:
-```bash
-reg = <0x00000000 0x08000000   // GICD base
-       0x00000000 0x00010000   // GICD size
-       0x00000000 0x08010000   // GICC base
-       0x00000000 0x00010000>; // GICC size
-```
-
-Therefore:
-- GICD_BASE = 0x08000000
-- GICC_BASE = 0x08010000
-
-These addresses are used by the kernel to initialize the distributor and CPU interface.
-
-#### Important Note About QEMU
-If you run QEMU with:
-```bash
--machine virt
-```
-You get **GICv2** (default).
-
-If you run QEMU with:
-```bash
--machine virt,gic-version=3
-```
-You get **GICv3**, which this kernel does not support.
-
-Attempting to boot with GICv3 will result in crashes (invalid register accesses, data aborts, etc.).
+WOS currently targets **GICv2**, which is the default interrupt controller
+exposed by the QEMU `virt` machine. GICv3 is not supported yet.
 
 ---
 
@@ -167,7 +161,8 @@ It is a functional minimal kernel, serving as a foundation for:
 - [x] MMU + page tables
 - [x] Physical page allocator
 - [ ] Interrupts + timer
-- [ ] Virtual memory allocator (heap)
+- [ ] Virtual memory allocator (heap, using L3 pages)
+- [ ] Device memory mapping (UART, GIC, timers) using proper Device-nGnRnE attributes
 - [ ] Minimal scheduler
 - [ ] Drivers (UART, timer, virtio)
 - [ ] User space

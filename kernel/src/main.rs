@@ -32,24 +32,8 @@ global_asm!(include_str!("arch/aarch64/exception_vectors.S"));  // Let the linke
 pub extern "C" fn rust_main() {
     puts("Booting WOS...\n");
 
-    // --- Enable FP/SIMD in CPACR_EL1 to allow use of floating-point and SIMD instructions ---
-    // Required for codes such as read_volatile etc.
-    // (LLVM may indeed generate FP/SIMD instructions for some operations,
-    // even if we don't explicitly use them in our Rust code - e.g. 
-    // for mathematical operations, or even for some memory access patterns).
-    unsafe fn enable_fp() {
-        core::arch::asm!(
-            "mrs x0, CPACR_EL1",
-            "orr x0, x0, #(0b11 << 20)", // FPEN = 0b11 (enable FP/SIMD)
-            "msr CPACR_EL1, x0",
-            "isb",
-            options(nostack, preserves_flags),
-        );
-    }
-    unsafe { enable_fp(); }
-
     // | DEBUG | Reading current EL --------------------------------
-    unsafe { debug::debug::read_current_el(); }
+    unsafe { debug::cpu::read_current_el(); }
 
     // --- Initializing exception vectors --------------------------------
     puts("Initializing exception vectors...\n");
