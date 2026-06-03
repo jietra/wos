@@ -98,6 +98,13 @@ The mapping policy is:
     - Attr: Normal WB (index 2)
     - Access: EL1 Read‑Only (AP = RO)
     - Exec: executable (XN = 0)
+- **.exceptions**
+    - Contains the exception vector table
+    - Placed immediately after `.text`
+    - Falls inside the `.text` VA range and therefore inherits:
+        - Attr: Normal WB
+        - Access: EL1 Read‑Only
+        - Exec: executable
 - **.rodata**
     - Attr: Normal WB
     - Access: EL1 Read‑Only
@@ -106,10 +113,13 @@ The mapping policy is:
     - Attr: Normal WB
     - Access: EL1 Read‑Write
     - Exec: non‑executable
-- **stack**: Located in `.bss`, therefore inherits `.bss` attributes:
-    - Attr: Normal WB
-    - Access: EL1 Read‑Write
-    - Exec: non‑executable
+- **.stack**
+    - Separate section defined in the linker script
+    - Mapped inside the same 2 MiB L2 region as the rest of the kernel
+    - Attributes:
+        - Attr: Normal WB (Attr2)
+        - Access: EL1 Read‑Write
+        - Exec: non‑executable (PXN+UXN)
 
 > Note: WOS currently assumes that all kernel sections fit within a single 2 MiB L2 region. This is true for the current minimal kernel, but future growth may require multiple L2 entries.
 
