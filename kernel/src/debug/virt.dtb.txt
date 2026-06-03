@@ -1,0 +1,787 @@
+// Parsed DTB
+
+Reading DTB...
+        DTB addr        = 0x000000004008f5a0
+        DTB magic       = 0x00000000d00dfeed
+        Parsing DTB...
+                /
+                Prop name:              interrupt-parent
+                  Prop:                 interrupt-parent                 = 
+                Prop name:              model
+                  Prop:                 model            = 
+                Prop name:              #size-cells
+                  Prop:                 #size-cells              = 
+                Prop name:              #address-cells
+                  Prop:                 #address-cells           = 
+                Prop name:              compatible
+                  Prop:                 compatible               = linux,dummy-virt
+psci
+                Prop name:              migrate
+                  Prop:                 migrate          = 
+                Prop name:              cpu_on
+                  Prop:                 cpu_on           = 
+                Prop name:              cpu_off
+                  Prop:                 cpu_off          = 
+                Prop name:              cpu_suspend
+                  Prop:                 cpu_suspend              = 
+                Prop name:              method
+                  Prop:                 method           = 
+                Prop name:              compatible
+                  Prop:                 compatible               = arm,psci-1.0
+                End node
+                --------------------------------------------
+memory@40000000
+                Prop name:              reg
+                  Prop:                 reg              =              <               0000000000000000
+                0000000040000000
+                0000000000000000
+                0000000008000000
+                >
+                Prop name:              device_type
+                  Prop:                 device_type              = 
+                End node
+                --------------------------------------------
+platform-bus@c000000
+                Prop name:              interrupt-parent
+                  Prop:                 interrupt-parent                 = 
+                Prop name:              ranges
+                  Prop:                 ranges           = 
+                Prop name:              #address-cells
+                  Prop:                 #address-cells           = 
+                Prop name:              #size-cells
+                  Prop:                 #size-cells              = 
+                Prop name:              compatible
+                  Prop:                 compatible               = qemu,platform
+                End node
+                --------------------------------------------
+fw-cfg@9020000
+                Prop name:              dma-coherent
+                  Prop:                 dma-coherent             = 
+                Prop name:              reg
+                  Prop:                 reg              =              <               0000000000000000
+                0000000009020000
+                0000000000000000
+                0000000000000018
+                >
+                Prop name:              compatible
+                  Prop:                 compatible               = qemu,fw-cfg-mmio
+                End node
+                --------------------------------------------
+virtio_mmio@a000000
+                Prop name:              dma-coherent
+                  Prop:                 dma-coherent             = 
+                Prop name:              interrupts
+                  Prop:                 interrupts               = 
+                Prop name:              reg
+                  Prop:                 reg              =              <               0000000000000000
+                000000000a000000
+                0000000000000000
+                0000000000000200
+                >
+                Prop name:              compatible
+                  Prop:                 compatible               = virtio,mmio
+                End node
+                --------------------------------------------
+virtio_mmio@a000200
+                Prop name:              dma-coherent
+                  Prop:                 dma-coherent             = 
+                Prop name:              interrupts
+                  Prop:                 interrupts               = 
+                Prop name:              reg
+                  Prop:                 reg              =              <               0000000000000000
+                000000000a000200
+                0000000000000000
+                0000000000000200
+                >
+                Prop name:              compatible
+                  Prop:                 compatible               = virtio,mmio
+                End node
+                --------------------------------------------
+virtio_mmio@a000400
+                Prop name:              dma-coherent
+                  Prop:                 dma-coherent             = 
+                Prop name:              interrupts
+                  Prop:                 interrupts               = 
+                Prop name:              reg
+                  Prop:                 reg              =              <               0000000000000000
+                000000000a000400
+                0000000000000000
+                0000000000000200
+                >
+                Prop name:              compatible
+                  Prop:                 compatible               = virtio,mmio
+                End node
+                --------------------------------------------
+virtio_mmio@a000600
+                Prop name:              dma-coherent
+                  Prop:                 dma-coherent             = 
+                Prop name:              interrupts
+                  Prop:                 interrupts               = 
+                Prop name:              reg
+                  Prop:                 reg              =              <               0000000000000000
+                000000000a000600
+                0000000000000000
+                0000000000000200
+                >
+                Prop name:              compatible
+                  Prop:                 compatible               = virtio,mmio
+                End node
+                --------------------------------------------
+virtio_mmio@a000800
+                Prop name:              dma-coherent
+                  Prop:                 dma-coherent             = 
+                Prop name:              interrupts
+                  Prop:                 interrupts               = 
+                Prop name:              reg
+                  Prop:                 reg              =              <               0000000000000000
+                000000000a000800
+                0000000000000000
+                0000000000000200
+                >
+                Prop name:              compatible
+                  Prop:                 compatible               = virtio,mmio
+                End node
+                --------------------------------------------
+virtio_mmio@a000a00
+                Prop name:              dma-coherent
+                  Prop:                 dma-coherent             = 
+                Prop name:              interrupts
+                  Prop:                 interrupts               = 
+                Prop name:              reg
+                  Prop:                 reg              =              <               0000000000000000
+                000000000a000a00
+                0000000000000000
+                0000000000000200
+                >
+                Prop name:              compatible
+                  Prop:                 compatible               = virtio,mmio
+                End node
+                --------------------------------------------
+virtio_mmio@a000c00
+                Prop name:              dma-coherent
+                  Prop:                 dma-coherent             = 
+                Prop name:              interrupts
+                  Prop:                 interrupts               = 
+                Prop name:              reg
+                  Prop:                 reg              =              <               0000000000000000
+                000000000a000c00
+                0000000000000000
+                0000000000000200
+                >
+                Prop name:              compatible
+                  Prop:                 compatible               = virtio,mmio
+                End node
+                --------------------------------------------
+virtio_mmio@a000e00
+                Prop name:              dma-coherent
+                  Prop:                 dma-coherent             = 
+                Prop name:              interrupts
+                  Prop:                 interrupts               = 
+                Prop name:              reg
+                  Prop:                 reg              =              <               0000000000000000
+                000000000a000e00
+                0000000000000000
+                0000000000000200
+                >
+                Prop name:              compatible
+                  Prop:                 compatible               = virtio,mmio
+                End node
+                --------------------------------------------
+virtio_mmio@a001000
+                Prop name:              dma-coherent
+                  Prop:                 dma-coherent             = 
+                Prop name:              interrupts
+                  Prop:                 interrupts               = 
+                Prop name:              reg
+                  Prop:                 reg              =              <               0000000000000000
+                000000000a001000
+                0000000000000000
+                0000000000000200
+                >
+                Prop name:              compatible
+                  Prop:                 compatible               = virtio,mmio
+                End node
+                --------------------------------------------
+virtio_mmio@a001200
+                Prop name:              dma-coherent
+                  Prop:                 dma-coherent             = 
+                Prop name:              interrupts
+                  Prop:                 interrupts               = 
+                Prop name:              reg
+                  Prop:                 reg              =              <               0000000000000000
+                000000000a001200
+                0000000000000000
+                0000000000000200
+                >
+                Prop name:              compatible
+                  Prop:                 compatible               = virtio,mmio
+                End node
+                --------------------------------------------
+virtio_mmio@a001400
+                Prop name:              dma-coherent
+                  Prop:                 dma-coherent             = 
+                Prop name:              interrupts
+                  Prop:                 interrupts               = 
+                Prop name:              reg
+                  Prop:                 reg              =              <               0000000000000000
+                000000000a001400
+                0000000000000000
+                0000000000000200
+                >
+                Prop name:              compatible
+                  Prop:                 compatible               = virtio,mmio
+                End node
+                --------------------------------------------
+virtio_mmio@a001600
+                Prop name:              dma-coherent
+                  Prop:                 dma-coherent             = 
+                Prop name:              interrupts
+                  Prop:                 interrupts               = 
+                Prop name:              reg
+                  Prop:                 reg              =              <               0000000000000000
+                000000000a001600
+                0000000000000000
+                0000000000000200
+                >
+                Prop name:              compatible
+                  Prop:                 compatible               = virtio,mmio
+                End node
+                --------------------------------------------
+virtio_mmio@a001800
+                Prop name:              dma-coherent
+                  Prop:                 dma-coherent             = 
+                Prop name:              interrupts
+                  Prop:                 interrupts               = 
+                Prop name:              reg
+                  Prop:                 reg              =              <               0000000000000000
+                000000000a001800
+                0000000000000000
+                0000000000000200
+                >
+                Prop name:              compatible
+                  Prop:                 compatible               = virtio,mmio
+                End node
+                --------------------------------------------
+virtio_mmio@a001a00
+                Prop name:              dma-coherent
+                  Prop:                 dma-coherent             = 
+                Prop name:              interrupts
+                  Prop:                 interrupts               = 
+                Prop name:              reg
+                  Prop:                 reg              =              <               0000000000000000
+                000000000a001a00
+                0000000000000000
+                0000000000000200
+                >
+                Prop name:              compatible
+                  Prop:                 compatible               = virtio,mmio
+                End node
+                --------------------------------------------
+virtio_mmio@a001c00
+                Prop name:              dma-coherent
+                  Prop:                 dma-coherent             = 
+                Prop name:              interrupts
+                  Prop:                 interrupts               = 
+                Prop name:              reg
+                  Prop:                 reg              =              <               0000000000000000
+                000000000a001c00
+                0000000000000000
+                0000000000000200
+                >
+                Prop name:              compatible
+                  Prop:                 compatible               = virtio,mmio
+                End node
+                --------------------------------------------
+virtio_mmio@a001e00
+                Prop name:              dma-coherent
+                  Prop:                 dma-coherent             = 
+                Prop name:              interrupts
+                  Prop:                 interrupts               = 
+                Prop name:              reg
+                  Prop:                 reg              =              <               0000000000000000
+                000000000a001e00
+                0000000000000000
+                0000000000000200
+                >
+                Prop name:              compatible
+                  Prop:                 compatible               = virtio,mmio
+                End node
+                --------------------------------------------
+virtio_mmio@a002000
+                Prop name:              dma-coherent
+                  Prop:                 dma-coherent             = 
+                Prop name:              interrupts
+                  Prop:                 interrupts               = 
+                Prop name:              reg
+                  Prop:                 reg              =              <               0000000000000000
+                000000000a002000
+                0000000000000000
+                0000000000000200
+                >
+                Prop name:              compatible
+                  Prop:                 compatible               = virtio,mmio
+                End node
+                --------------------------------------------
+virtio_mmio@a002200
+                Prop name:              dma-coherent
+                  Prop:                 dma-coherent             = 
+                Prop name:              interrupts
+                  Prop:                 interrupts               = 
+                Prop name:              reg
+                  Prop:                 reg              =              <               0000000000000000
+                000000000a002200
+                0000000000000000
+                0000000000000200
+                >
+                Prop name:              compatible
+                  Prop:                 compatible               = virtio,mmio
+                End node
+                --------------------------------------------
+virtio_mmio@a002400
+                Prop name:              dma-coherent
+                  Prop:                 dma-coherent             = 
+                Prop name:              interrupts
+                  Prop:                 interrupts               = 
+                Prop name:              reg
+                  Prop:                 reg              =              <               0000000000000000
+                000000000a002400
+                0000000000000000
+                0000000000000200
+                >
+                Prop name:              compatible
+                  Prop:                 compatible               = virtio,mmio
+                End node
+                --------------------------------------------
+virtio_mmio@a002600
+                Prop name:              dma-coherent
+                  Prop:                 dma-coherent             = 
+                Prop name:              interrupts
+                  Prop:                 interrupts               = 
+                Prop name:              reg
+                  Prop:                 reg              =              <               0000000000000000
+                000000000a002600
+                0000000000000000
+                0000000000000200
+                >
+                Prop name:              compatible
+                  Prop:                 compatible               = virtio,mmio
+                End node
+                --------------------------------------------
+virtio_mmio@a002800
+                Prop name:              dma-coherent
+                  Prop:                 dma-coherent             = 
+                Prop name:              interrupts
+                  Prop:                 interrupts               = 
+                Prop name:              reg
+                  Prop:                 reg              =              <               0000000000000000
+                000000000a002800
+                0000000000000000
+                0000000000000200
+                >
+                Prop name:              compatible
+                  Prop:                 compatible               = virtio,mmio
+                End node
+                --------------------------------------------
+virtio_mmio@a002a00
+                Prop name:              dma-coherent
+                  Prop:                 dma-coherent             = 
+                Prop name:              interrupts
+                  Prop:                 interrupts               = 
+                Prop name:              reg
+                  Prop:                 reg              =              <               0000000000000000
+                000000000a002a00
+                0000000000000000
+                0000000000000200
+                >
+                Prop name:              compatible
+                  Prop:                 compatible               = virtio,mmio
+                End node
+                --------------------------------------------
+virtio_mmio@a002c00
+                Prop name:              dma-coherent
+                  Prop:                 dma-coherent             = 
+                Prop name:              interrupts
+                  Prop:                 interrupts               = 
+                Prop name:              reg
+                  Prop:                 reg              =              <               0000000000000000
+                000000000a002c00
+                0000000000000000
+                0000000000000200
+                >
+                Prop name:              compatible
+                  Prop:                 compatible               = virtio,mmio
+                End node
+                --------------------------------------------
+virtio_mmio@a002e00
+                Prop name:              dma-coherent
+                  Prop:                 dma-coherent             = 
+                Prop name:              interrupts
+                  Prop:                 interrupts               = 
+                Prop name:              reg
+                  Prop:                 reg              =              <               0000000000000000
+                000000000a002e00
+                0000000000000000
+                0000000000000200
+                >
+                Prop name:              compatible
+                  Prop:                 compatible               = virtio,mmio
+                End node
+                --------------------------------------------
+virtio_mmio@a003000
+                Prop name:              dma-coherent
+                  Prop:                 dma-coherent             = 
+                Prop name:              interrupts
+                  Prop:                 interrupts               = 
+                Prop name:              reg
+                  Prop:                 reg              =              <               0000000000000000
+                000000000a003000
+                0000000000000000
+                0000000000000200
+                >
+                Prop name:              compatible
+                  Prop:                 compatible               = virtio,mmio
+                End node
+                --------------------------------------------
+virtio_mmio@a003200
+                Prop name:              dma-coherent
+                  Prop:                 dma-coherent             = 
+                Prop name:              interrupts
+                  Prop:                 interrupts               = 
+                Prop name:              reg
+                  Prop:                 reg              =              <               0000000000000000
+                000000000a003200
+                0000000000000000
+                0000000000000200
+                >
+                Prop name:              compatible
+                  Prop:                 compatible               = virtio,mmio
+                End node
+                --------------------------------------------
+virtio_mmio@a003400
+                Prop name:              dma-coherent
+                  Prop:                 dma-coherent             = 
+                Prop name:              interrupts
+                  Prop:                 interrupts               = 
+                Prop name:              reg
+                  Prop:                 reg              =              <               0000000000000000
+                000000000a003400
+                0000000000000000
+                0000000000000200
+                >
+                Prop name:              compatible
+                  Prop:                 compatible               = virtio,mmio
+                End node
+                --------------------------------------------
+virtio_mmio@a003600
+                Prop name:              dma-coherent
+                  Prop:                 dma-coherent             = 
+                Prop name:              interrupts
+                  Prop:                 interrupts               = 
+                Prop name:              reg
+                  Prop:                 reg              =              <               0000000000000000
+                000000000a003600
+                0000000000000000
+                0000000000000200
+                >
+                Prop name:              compatible
+                  Prop:                 compatible               = virtio,mmio
+                End node
+                --------------------------------------------
+virtio_mmio@a003800
+                Prop name:              dma-coherent
+                  Prop:                 dma-coherent             = 
+                Prop name:              interrupts
+                  Prop:                 interrupts               = 
+                Prop name:              reg
+                  Prop:                 reg              =              <               0000000000000000
+                000000000a003800
+                0000000000000000
+                0000000000000200
+                >
+                Prop name:              compatible
+                  Prop:                 compatible               = virtio,mmio
+                End node
+                --------------------------------------------
+virtio_mmio@a003a00
+                Prop name:              dma-coherent
+                  Prop:                 dma-coherent             = 
+                Prop name:              interrupts
+                  Prop:                 interrupts               = 
+                Prop name:              reg
+                  Prop:                 reg              =              <               0000000000000000
+                000000000a003a00
+                0000000000000000
+                0000000000000200
+                >
+                Prop name:              compatible
+                  Prop:                 compatible               = virtio,mmio
+                End node
+                --------------------------------------------
+virtio_mmio@a003c00
+                Prop name:              dma-coherent
+                  Prop:                 dma-coherent             = 
+                Prop name:              interrupts
+                  Prop:                 interrupts               = 
+                Prop name:              reg
+                  Prop:                 reg              =              <               0000000000000000
+                000000000a003c00
+                0000000000000000
+                0000000000000200
+                >
+                Prop name:              compatible
+                  Prop:                 compatible               = virtio,mmio
+                End node
+                --------------------------------------------
+virtio_mmio@a003e00
+                Prop name:              dma-coherent
+                  Prop:                 dma-coherent             = 
+                Prop name:              interrupts
+                  Prop:                 interrupts               = 
+                Prop name:              reg
+                  Prop:                 reg              =              <               0000000000000000
+                000000000a003e00
+                0000000000000000
+                0000000000000200
+                >
+                Prop name:              compatible
+                  Prop:                 compatible               = virtio,mmio
+                End node
+                --------------------------------------------
+gpio-keys
+                Prop name:              compatible
+                  Prop:                 compatible               = gpio-keys
+poweroff
+                Prop name:              gpios
+                  Prop:                 gpios            = 
+                Prop name:              linux,code
+                  Prop:                 linux,code               = 
+                Prop name:              label
+                  Prop:                 label            = 
+                End node
+                --------------------------------------------
+                End node
+                --------------------------------------------
+pl061@9030000
+                Prop name:              phandle
+                  Prop:                 phandle          = 
+                Prop name:              clock-names
+                  Prop:                 clock-names              = 
+                Prop name:              clocks
+                  Prop:                 clocks           = 
+                Prop name:              interrupts
+                  Prop:                 interrupts               = 
+                Prop name:              gpio-controller
+                  Prop:                 gpio-controller          = 
+                Prop name:              #gpio-cells
+                  Prop:                 #gpio-cells              = 
+                Prop name:              compatible
+                  Prop:                 compatible               = arm,pl061
+                Prop name:              reg
+                  Prop:                 reg              =              <               0000000000000000
+                0000000009030000
+                0000000000000000
+                0000000000001000
+                >
+                End node
+                --------------------------------------------
+pcie@10000000
+                Prop name:              interrupt-map-mask
+                  Prop:                 interrupt-map-mask               = 
+                Prop name:              interrupt-map
+                  Prop:                 interrupt-map            = 
+                Prop name:              #interrupt-cells
+                  Prop:                 #interrupt-cells                 = 
+                Prop name:              ranges
+                  Prop:                 ranges           = 
+                Prop name:              reg
+                  Prop:                 reg              =              <               0000000000000040
+                0000000010000000
+                0000000000000000
+                0000000010000000
+                >
+                Prop name:              msi-map
+                  Prop:                 msi-map          = 
+                Prop name:              dma-coherent
+                  Prop:                 dma-coherent             = 
+                Prop name:              bus-range
+                  Prop:                 bus-range                = 
+                Prop name:              linux,pci-domain
+                  Prop:                 linux,pci-domain                 = 
+                Prop name:              #size-cells
+                  Prop:                 #size-cells              = 
+                Prop name:              #address-cells
+                  Prop:                 #address-cells           = 
+                Prop name:              device_type
+                  Prop:                 device_type              = 
+                Prop name:              compatible
+                  Prop:                 compatible               = pci-host-ecam-generic
+                End node
+                --------------------------------------------
+pl031@9010000
+                Prop name:              clock-names
+                  Prop:                 clock-names              = 
+                Prop name:              clocks
+                  Prop:                 clocks           = 
+                Prop name:              interrupts
+                  Prop:                 interrupts               = 
+                Prop name:              reg
+                  Prop:                 reg              =              <               0000000000000000
+                0000000009010000
+                0000000000000000
+                0000000000001000
+                >
+                Prop name:              compatible
+                  Prop:                 compatible               = arm,pl031
+                End node
+                --------------------------------------------
+pl011@9000000
+                Prop name:              clock-names
+                  Prop:                 clock-names              = 
+                Prop name:              clocks
+                  Prop:                 clocks           = 
+                Prop name:              interrupts
+                  Prop:                 interrupts               = 
+                Prop name:              reg
+                  Prop:                 reg              =              <               0000000000000000
+                0000000009000000
+                0000000000000000
+                0000000000001000
+                >
+                Prop name:              compatible
+                  Prop:                 compatible               = arm,pl011
+                End node
+                --------------------------------------------
+pmu
+                Prop name:              interrupts
+                  Prop:                 interrupts               = 
+                Prop name:              compatible
+                  Prop:                 compatible               = arm,armv8-pmuv3
+                End node
+                --------------------------------------------
+intc@8000000
+                Prop name:              phandle
+                  Prop:                 phandle          = 
+                Prop name:              reg
+                  Prop:                 reg              =              <               0000000000000000
+                0000000008000000
+                0000000000000000
+                0000000000010000
+                0000000000000000
+                0000000008010000
+                0000000000000000
+                0000000000010000
+                >
+                Prop name:              compatible
+                  Prop:                 compatible               = arm,cortex-a15-gic
+                Prop name:              ranges
+                  Prop:                 ranges           = 
+                Prop name:              #size-cells
+                  Prop:                 #size-cells              = 
+                Prop name:              #address-cells
+                  Prop:                 #address-cells           = 
+                Prop name:              interrupt-controller
+                  Prop:                 interrupt-controller             = 
+                Prop name:              #interrupt-cells
+                  Prop:                 #interrupt-cells                 = 
+v2m@8020000
+                Prop name:              phandle
+                  Prop:                 phandle          = 
+                Prop name:              reg
+                  Prop:                 reg              =              <               0000000000000000
+                0000000008020000
+                0000000000000000
+                0000000000001000
+                >
+                Prop name:              msi-controller
+                  Prop:                 msi-controller           = 
+                Prop name:              compatible
+                  Prop:                 compatible               = arm,gic-v2m-frame
+                End node
+                --------------------------------------------
+                End node
+                --------------------------------------------
+flash@0
+                Prop name:              bank-width
+                  Prop:                 bank-width               = 
+                Prop name:              reg
+                  Prop:                 reg              =              <               0000000000000000
+                0000000000000000
+                0000000000000000
+                0000000004000000
+                0000000000000000
+                0000000004000000
+                0000000000000000
+                0000000004000000
+                >
+                Prop name:              compatible
+                  Prop:                 compatible               = cfi-flash
+                End node
+                --------------------------------------------
+cpus
+                Prop name:              #size-cells
+                  Prop:                 #size-cells              = 
+                Prop name:              #address-cells
+                  Prop:                 #address-cells           = 
+cpu-map
+socket0
+cluster0
+core0
+                Prop name:              cpu
+                  Prop:                 cpu              = 
+                End node
+                --------------------------------------------
+                End node
+                --------------------------------------------
+                End node
+                --------------------------------------------
+                End node
+                --------------------------------------------
+cpu@0
+                Prop name:              phandle
+                  Prop:                 phandle          = 
+                Prop name:              reg
+                  Prop:                 reg              =              <               0000000000000000
+                >
+                Prop name:              compatible
+                  Prop:                 compatible               = arm,cortex-a72
+                Prop name:              device_type
+                  Prop:                 device_type              = 
+                End node
+                --------------------------------------------
+                End node
+                --------------------------------------------
+timer
+                Prop name:              interrupts
+                  Prop:                 interrupts               = 
+                Prop name:              always-on
+                  Prop:                 always-on                = 
+                Prop name:              compatible
+                  Prop:                 compatible               = arm,armv8-timer
+                End node
+                --------------------------------------------
+apb-pclk
+                Prop name:              phandle
+                  Prop:                 phandle          = 
+                Prop name:              clock-output-names
+                  Prop:                 clock-output-names               = 
+                Prop name:              clock-frequency
+                  Prop:                 clock-frequency          = 
+                Prop name:              #clock-cells
+                  Prop:                 #clock-cells             = 
+                Prop name:              compatible
+                  Prop:                 compatible               = fixed-clock
+                End node
+                --------------------------------------------
+chosen
+                Prop name:              stdout-path
+                  Prop:                 stdout-path              = 
+                Prop name:              rng-seed
+                  Prop:                 rng-seed                 = 
+                Prop name:              kaslr-seed
+                  Prop:                 kaslr-seed               = 
+                End node
+                --------------------------------------------
+                End node
+                --------------------------------------------
+                END
+                ============================================

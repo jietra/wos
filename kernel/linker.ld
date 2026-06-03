@@ -13,6 +13,11 @@ SECTIONS
         _text_end = .;
     }
 
+    /* Align explicitly a specific section .exceptions*/
+    .exceptions : ALIGN(2048) {
+        KEEP(*(.exceptions))
+    }
+
     /* Read only data */
     .rodata : ALIGN(4K) {
         _rodata_start = .;
@@ -35,7 +40,15 @@ SECTIONS
         _bss_end = .;
     }
 
+    /* Stack section */
+    .stack (NOLOAD) : ALIGN(16) {
+        _stack_start = .;
+        . = . + 0x10000;   /* 64 KB stack */
+        _stack_top = .;
+    }
+
     /* Kernel global bounds */
     _kernel_start = _text_start;
     _kernel_end   = _bss_end;
+
 }

@@ -14,9 +14,9 @@ pub unsafe fn test_memory() {
         *ptr1 = 0xDEAD_BEEF_DEAD_BEEF;
         *ptr2 = 0xCAFEBABE_CAFEBABE;
     }
-    puts("\nKernel booted with MMU enabled!\n");
+    puts("\tKernel booted with MMU enabled: OK\n");
 
-    puts("\nTesting MMU by allocating some pages and writing to them...\n");
+    puts("\tTesting MMU by allocating some pages and writing to them...\n");
     unsafe {
         if let Some(p1) = alloc_page() {
             if let Some(p2) = alloc_page() {
@@ -27,19 +27,16 @@ pub unsafe fn test_memory() {
                 *ptr2 = 0xCAFEBABE_CAFEBABE;
 
                 // raw print the allocated physical addresses and the values we wrote to them to verify that the MMU is working correctly. In a real kernel, you'd want to add proper error handling and support for freeing pages, etc.
-                puts("\talloc p1 = 0x");
-                put_hex_ln(p1);
-
-                puts("\talloc p2 = 0x");
-                put_hex_ln(p2);
+                puts("\t\talloc p1 = 0x"); put_hex_ln(p1);
+                puts("\t\talloc p2 = 0x"); put_hex_ln(p2);
                 // Note: we can't use Rust's formatting macros since we're in no_std, so we just print the raw values in hexadecimal manually. In a real kernel, you'd want to implement a proper formatting function to make this easier.
 
-                puts("\tTest alloc ok\n")
+                puts("\t\tTest alloc: OK\n")
             } else {
-                puts("\talloc p2 failed\n");
+                puts("\t\talloc p2 failed\n");
             }
         } else {
-            puts("\talloc p1 failed\n");
+            puts("\t\talloc p1 failed\n");
         }
     }
 }
