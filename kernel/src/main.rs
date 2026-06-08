@@ -14,6 +14,7 @@ mod debug;
 
 use arch::aarch64::init_exceptions;
 use arch::aarch64::linker_symbols::_kernel_end; // defined in linker script: required for initializing physical memory allocator
+use arch::aarch64::interrupts::gicv2::gicv2;
 use drivers::uart::puts;
 use memory::phys::init_phys_alloc;
 use mmu::{init_mair, init_tcr, init_ttbr0, enable_mmu, init_page_tables};
@@ -30,26 +31,26 @@ global_asm!(include_str!("arch/aarch64/exception_vectors.S"));  // Let the linke
 // -----------------------------------------------------------------------------
 #[no_mangle]
 pub extern "C" fn rust_main() {
-    puts("Booting WOS...\n");
+    puts("| BOOT  | Booting WOS...\n");
 
-    // | DEBUG | Reading current EL --------------------------------
+    // | CHECK | Reading current EL --------------------------------
     unsafe { debug::cpu::read_current_el(); }
 
     // --- Initializing exception vectors --------------------------------
-    puts("Initializing exception vectors...\n");
+    puts("| INIT. | Initializing exception vectors...\n");
     unsafe {
         init_exceptions();      // install VBAR_EL1 right away
     }
     
-    // | DEBUG | Reading and parsing the DTB --------------------------------
-    puts("| DEBUG | Reading DTB...\n");
+    // | CHECK | Reading and parsing the DTB --------------------------------
+    puts("| CHECK | Reading DTB...\n");
     unsafe {
         debug::dtb::debug_dtb();
         //debug::dtb::parse_dtb();
     }
 
-    // | DEBUG | TESTING SEQUENCE --------------------------------
-    puts("| DEBUG | Running some tests...\n");
+    // | CHECK | TESTING SEQUENCE --------------------------------
+    puts("| CHECK | Running some tests...\n");
 
     puts("\tTesting read_volatile...\n");
     static TEST: u64 = 0x12345678ABCDEF00;
@@ -98,7 +99,7 @@ pub extern "C" fn rust_main() {
     */
 
     // --- Initializing MMU and page tables --------------------------------
-    puts("Initializing MMU...\n");
+    puts("| INIT. | Initializing MMU...\n");
     unsafe {
         init_mair();                // Initialize MAIR (Memory Attribute Indirection Register) to set up memory attributes
         init_tcr();                 // Initialize TCR (Translation Control Register) to set up the virtual address space size and granule size
@@ -110,10 +111,17 @@ pub extern "C" fn rust_main() {
     }
     puts("\tMMU enabled\n");
 
-    // | DEBUG | Testing memory access after MMU enabled --------------------------------
-    puts("| DEBUG | Testing memory access after MMU enabled...\n");
+    // | CHECK | Testing memory access after MMU enabled --------------------------------
+    puts("| CHECK | Testing memory access after MMU enabled...\n");
     unsafe { debug::memory::test_memory(); }
     
+    // --- Initializing Gicv2 -----------------------------
+    puts("| INIT. | Initializing GIC v2...\n");
+    unsafe {
+        gicv2::init();
+    }
+    puts("\tGIC enabled\n");
+
     // --- Welcome message --------------------------------
     puts("\n-------------------------------\n");
     puts(  "|       Hello from WOS!       |"  );

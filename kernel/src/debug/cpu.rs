@@ -4,7 +4,7 @@ use crate::drivers::uart::puts;
 use crate::utils::print::put_hex_ln;
 
 pub unsafe fn read_current_el() {
-    puts("| DEBUG | Reading current EL...\n");
+    puts("| CHECK | Reading current EL...\n");
     let el: u64;
     unsafe {
         core::arch::asm!(

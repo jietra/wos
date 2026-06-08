@@ -1,8 +1,10 @@
-![Status](https://img.shields.io/badge/status-kernel_ready-brightgreen)
-
 # WOS — W. Operating System
+![Status](https://img.shields.io/badge/status-kernel_ready-brightgreen)
+![License](https://img.shields.io/badge/license-MIT-blue)
 
 **WOS** is an experimental operating system written in **Rust** and built **from scratch** for the **ARM64/AArch64** architecture.
+
+The kernel is stable enough for experimentation and educational use, but **not intended for production environments**.
 
 At its current stage, WOS is a **minimal, clean, and educational kernel**, implementing the essential foundations of a modern OS:
 
@@ -21,11 +23,23 @@ At its current stage, WOS is a **minimal, clean, and educational kernel**, imple
 
 This project stands out because it is **Rust-first** and **ARM64-first**, a combination that is still extremely rare in the OS development ecosystem.
 
+
+## Table of Contents
+- [Project Vision](#-project-vision)
+- [Current Features](#-current-features)
+- [Project Structure](#-project-structure)
+- [Build Instructions](#build-instructions-)
+- [Run in QEMU](#️-run-in-qemu-arm64)
+- [Current Status](#-current-status)
+- [Roadmap](#️-roadmap-kernel)
+- [Contributing](#-contributing)
+- [License](#-license)
+
 ---
 
 ## 🎯 Project Vision
 
-WOS now includes a fully correct ARMv8 MMU with fine‑grained 4 KiB mappings, making it a solid foundation for advanced kernel features such as user space, virtual memory, and process isolation.
+WOS is a research‑driven exploration of how operating‑system foundations might evolve in an era where adaptive, learning‑based components become pervasive.
 
 WOS has two complementary goals:
 
@@ -46,9 +60,13 @@ This makes WOS useful for:
 - researchers needing a minimal ARM64 environment  
 - developers exploring unikernels in Rust  
 
+> Status: WOS now includes a fully correct ARMv8 MMU with fine‑grained 4 KiB mappings, making it a solid foundation for advanced kernel features such as user space, virtual memory, and process isolation.
+
+
 ### 2. **A future platform for an AI‑native operating system**
-Long-term, WOS aims to explore the idea of an AI‑native operating system.
-The AI components are not part of the public codebase yet. 
+WOS is not only a minimal ARM64 kernel. It is also the foundation for a broader research direction. Long-term, WOS aims to explore the idea of an AI‑native operating system.
+
+> Note: The AI components are not part of the public codebase. 
 
 ---
 
@@ -65,6 +83,12 @@ The AI components are not part of the public codebase yet.
 - Physical page allocator (4K pages)
 - Hexadecimal debug output
 - QEMU‑friendly environment
+- Basic GICv2 initialization (Distributor + CPU interface), currently using identity-mapped MMIO
+
+> **Note:**  
+> Device MMIO is currently accessed through identity-mapped physical addresses.
+> This simplifies early bring-up of interrupts and timers.  
+> A full high-half kernel layout (KERNEL_BASE / DEVICE_BASE in the 0xFFFF_… range) will be enabled once IRQs, timers, and the scheduler are stable.
 
 ---
 
@@ -87,7 +111,7 @@ The AI components are not part of the public codebase yet.
 
 ---
 
-## 🛠️ Build Instructions
+## Build Instructions 🛠️
 
 The kernel now requires a 4‑level MMU‑capable ARMv8 CPU (all QEMU virt machines support this).
 
@@ -139,8 +163,9 @@ qemu-system-aarch64   -M virt   -cpu cortex-a72   -kernel kernel8.img   -nograph
 
 ### 📝 Interrupt Controller (GIC)
 
-WOS currently targets **GICv2**, which is the default interrupt controller
-exposed by the QEMU `virt` machine. GICv3 is not supported yet.
+WOS now includes **working GICv2 initialization** (Distributor + CPU interface). At this stage, the kernel still uses **identity-mapped physical addresses** for MMIO (e.g., UART at 0x0900_0000, GICD at 0x0800_0000), because the high-half virtual address space (DEVICE_BASE at 0xFFFF_FD00_0000_0000) is not enabled yet.
+
+This is intentional: interrupts, timers, and exception handling are brought up first in a simple identity-mapped environment before enabling the full high-half kernel with TTBR1 and virtualized device mappings.
 
 ---
 
@@ -154,15 +179,18 @@ It is a functional minimal kernel, serving as a foundation for:
 - a user space
 - an AI‑native runtime
 
+The interrupt controller (GICv2) is now initialized and functional, using identity-mapped MMIO as a temporary bring-up strategy.
+
 ## 🗺️ Roadmap (Kernel)
 
 - [x] ARM64 boot + Rust kernel
 - [x] UART output
 - [x] MMU + page tables
 - [x] Physical page allocator
-- [ ] Interrupts + timer
+- [x] Basic GICv2 bring-up (Distributor + CPU interface)
+- [ ] Timer interrupts (CNTV)
+- [ ] High-half virtual device mapping (UART, GIC, timers) using TTBR1 + DEVICE_BASE
 - [ ] Virtual memory allocator (heap, using L3 pages)
-- [ ] Device memory mapping (UART, GIC, timers) using proper Device-nGnRnE attributes
 - [ ] Minimal scheduler
 - [ ] Drivers (UART, timer, virtio)
 - [ ] User space
@@ -218,3 +246,5 @@ This makes the kernel freely usable for learning, experimentation, and derivativ
 ### **2. AI‑native components — Proprietary**
 The AI‑native runtime and related modules are **not included in this repository** and remain **closed‑source and proprietary**.  
 They will be distributed separately and are not covered by the MIT license.
+
+See the [LICENSE](LICENSE) file for details.
