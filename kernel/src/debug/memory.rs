@@ -4,6 +4,7 @@ use crate::memory::phys::alloc_page;
 
 // Test the MMU by allocating some pages and writing to them. If the MMU is working correctly, we should be able to read back the same values without causing a fault. In a real kernel, you'd want to add proper error handling and support for freeing pages, etc.
 pub unsafe fn test_memory() {
+    puts("| CHECK | Testing memory access after MMU enabled...\n");
     unsafe {
         let p1 = alloc_page().unwrap();
         let p2 = alloc_page().unwrap();

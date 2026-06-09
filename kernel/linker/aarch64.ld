@@ -13,7 +13,7 @@ SECTIONS
         _text_end = .;
     }
 
-    /* Align explicitly a specific section .exceptions*/
+    /* Align explicitly a specific section .exceptions */
     .exceptions : ALIGN(2048) {
         KEEP(*(.exceptions))
     }

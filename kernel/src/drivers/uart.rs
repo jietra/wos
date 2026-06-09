@@ -1,12 +1,14 @@
 // -----------------------------------------------------------------------------
-// UART driver (MMIO at 0x0900_0000)
+// UART driver
 // -----------------------------------------------------------------------------
+
+use crate::arch::mmio::UART_BASE;
 
 #[inline(always)]
 pub fn putc(c: u8) {
     unsafe {
-        let uart = 0x0900_0000 as *mut u32;
-        *uart = c as u32;
+        let uart = UART_BASE as *mut u8;
+        core::ptr::write_volatile(uart, c);
     }
 }
 

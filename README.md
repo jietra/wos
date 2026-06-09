@@ -2,34 +2,33 @@
 ![Status](https://img.shields.io/badge/status-kernel_ready-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
-**WOS** is an experimental operating system written in **Rust** and built **from scratch** for the **ARM64/AArch64** architecture.
+**WOS** is an experimental operating system written in **Rust**, built **from scratch**, now supporting **ARM64/AArch64** *and* **RISC-V (rv64)** architectures.
 
 The kernel is stable enough for experimentation and educational use, but **not intended for production environments**.
 
 At its current stage, WOS is a **minimal, clean, and educational kernel**, implementing the essential foundations of a modern OS:
 
-- custom ARM64 boot pipeline  
-- EL1 CPU initialization  
-- full MMU setup (MAIR, TCR, TTBR0, SCTLR)
-- hierarchical L0/L1/L2/L3 page tables
-- per‑section kernel mapping:
-  - .text → RX, RO
-  - .rodata → R, XN
-  - .data/.bss → RW, XN
-  - stack → RW, XN  
+- custom ARM64 and RISC-V boot pipeline  
+- EL1 CPU initialization (ARM64)
+- early bring‑up on RISC‑V (stack + Rust entry)
+- full ARM64 MMU setup (MAIR, TCR, TTBR0, SCTLR)
+- hierarchical L0/L1/L2/L3 page tables (ARM64)
+- per‑section kernel mapping
 - UART output  
 - physical page allocator  
 - Rust `no_std` / `no_main` environment  
 
-This project stands out because it is **Rust-first** and **ARM64-first**, a combination that is still extremely rare in the OS development ecosystem.
-
+WOS is **Rust-first**, **multi-architecture**, and designed to be **educational and clean**.
 
 ## Table of Contents
 - [Project Vision](#-project-vision)
+- [Multi-Architecture Support](#-multi-architecture-support)
 - [Current Features](#-current-features)
 - [Project Structure](#-project-structure)
+- [Prerequisites](#-prerequisites)
 - [Build Instructions](#build-instructions-)
-- [Run in QEMU](#️-run-in-qemu-arm64)
+- [Run in QEMU (ARM64)](#️-run-in-qemu-arm64)
+- [Run in QEMU (RISC-V)](#️-run-in-qemu-risc-v)
 - [Current Status](#-current-status)
 - [Roadmap](#️-roadmap-kernel)
 - [Contributing](#-contributing)
@@ -43,49 +42,78 @@ WOS is a research‑driven exploration of how operating‑system foundations mig
 
 WOS has two complementary goals:
 
-### 1. **A minimal and educational Rust ARM64 OS**
+### 1. **A minimal and educational Rust OS (ARM64 + RISC-V)**
 WOS provides a clear, modern, and understandable foundation for learning:
 
-- how to boot an ARM64 CPU  
-- how to enable and configure the MMU  
+- how to boot ARM64 and RISC-V CPUs    
 - how to write a Rust kernel without a runtime  
 - how to manage physical memory  
 - how to interact with hardware (UART, timers, etc.)
+- how to configure the ARM64 MMU
+- how to bring up a minimal RISC‑V kernel
 
 This makes WOS useful for:
 
 - systems programming students  
 - Rust developers curious about OS internals  
-- people wanting a simple ARM64 kernel for Raspberry Pi or QEMU  
-- researchers needing a minimal ARM64 environment  
-- developers exploring unikernels in Rust  
+- people wanting a simple ARM64 or RISC-V kernel  
+- researchers needing a minimal multi-arch environment  
 
-> Status: WOS now includes a fully correct ARMv8 MMU with fine‑grained 4 KiB mappings, making it a solid foundation for advanced kernel features such as user space, virtual memory, and process isolation.
+> Status (ARM64): WOS now includes a fully correct ARMv8 MMU with fine‑grained 4 KiB mappings, making it a solid foundation for advanced kernel features such as user space, virtual memory, and process isolation.
 
 
 ### 2. **A future platform for an AI‑native operating system**
-WOS is not only a minimal ARM64 kernel. It is also the foundation for a broader research direction. Long-term, WOS aims to explore the idea of an AI‑native operating system.
+WOS is also the foundation for a broader research direction exploring the idea of an AI‑native OS.
 
 > Note: The AI components are not part of the public codebase. 
 
 ---
 
+## 🏗️ Multi‑Architecture Support
+WOS now supports two architectures:
+
+### ✔ ARM64 / AArch64
+Fully functional:
+- custom bootloader
+- EL1 initialization
+- MMU + page tables
+- UART
+- GICv2
+- physical memory allocator
+
+### ✔ RISC‑V (rv64)
+Early bring‑up:
+- custom bootloader (start.S)
+- stack setup
+- Rust entry (rust_main)
+- UART “Hello” output
+- working linker script
+- custom target JSON
+- correct code model (medium)
+- Architecture‑specific code lives in:
+
+```
+kernel/src/arch/
+  ├── aarch64/
+  └── riscv64/
+```
+---
+
 ## ✨ Current Features
 
 - Minimal Rust kernel (`no_std`, `no_main`)
-- Custom AArch64 bootloader and startup code
+- Custom boot code for ARM64 and RISC‑V
 - UART driver (console output)
-- Full exception handling (synchronous exceptions, data aborts, FP/SIMD traps)
-- Full ARMv8 MMU setup (MAIR, TCR, TTBR0, SCTLR)
+- ARM64 exception handling (synchronous exceptions, data aborts, FP/SIMD traps)
+- ARMv8 MMU setup (MAIR, TCR, TTBR0, SCTLR)
 - 4‑level translation tables (L0/L1/L2/L3)
 - Fine‑grained 4 KiB kernel mapping (text/rodata/data/bss/stack)
-- Correct memory attributes (Normal WB, Device-nGnRnE, XN, RO/RW)
 - Physical page allocator (4K pages)
-- Hexadecimal debug output
+- Debug helpers
 - QEMU‑friendly environment
-- Basic GICv2 initialization (Distributor + CPU interface), currently using identity-mapped MMIO
+- Basic GICv2 initialization (Distributor + CPU interface), currently using identity-mapped MMIO (ARM64)
 
-> **Note:**  
+> **Note (ARM64):**  
 > Device MMIO is currently accessed through identity-mapped physical addresses.
 > This simplifies early bring-up of interrupts and timers.  
 > A full high-half kernel layout (KERNEL_BASE / DEVICE_BASE in the 0xFFFF_… range) will be enabled once IRQs, timers, and the scheduler are stable.
@@ -94,46 +122,58 @@ WOS is not only a minimal ARM64 kernel. It is also the foundation for a broader 
 
 ## 📁 Project Structure
 
-```bash
+```
 /docs                   # Technical documentation
 /kernel
   ├── src
-  │   ├── arch/aarch64  # Architecture-specific code
-  │   ├── mmu           # Page tables and MMU setup
-  │   ├── memory        # Physical memory management and allocators
+  │   ├── arch/aarch64  # ARM64-specific code
+  │   ├── arch/riscv64  # RISC-V-specific code
+  │   ├── memory        # Memory management
   │   ├── drivers       # UART, future DTB parsing, etc.
-  │   ├── debug         # Debug helpers (CPU, memory tests, DTB debug)
+  │   ├── debug         # Debug helpers
   │   ├── utils         # Printing, helpers
   │   └── main.rs       # Kernel entry point (Rust)
-  ├── linker.ld         # Linker script
-  └── virt.dtb          # QEMU virt machine DTB (generated)
+  ├── linker/           # Linker scripts per architecture
+  ├── targets/          # Custom Rust target JSON files
+  ├── build.rs          
+  └── virt.dtb          # QEMU DTB (ARM64)
 ```
 
 ---
 
-## Build Instructions 🛠️
+## 🧰 Prerequisites
+WOS requires:
+- Rust nightly
+- clang / LLVM (for assembling start.S via build.rs)
+- QEMU with ARM64 and RISC‑V support
 
-The kernel now requires a 4‑level MMU‑capable ARMv8 CPU (all QEMU virt machines support this).
+On Debian/Ubuntu:
+```bash
+sudo apt install clang llvm qemu-system-arm qemu-system-misc
+```
 
-Ensure Rust nightly and the required ARM64 toolchains are installed.
+On macOS (M chips), using `UTM` is recommended for convenience and stability. WOS runs perfectly inside a `UTM` ARM64 virtual machine.
 
+---
+
+## 🛠️ Build Instructions
+
+### Build for ARM64
 ```bash
 cd kernel
-cargo build
-````
-The kernel ELF is produced at:
+cargo build --target targets/aarch64-wos.json
+```
 
+### Build for RISC‑V
 ```bash
-kernel/target/aarch64-wos/debug/kernel
+cd kernel
+cargo build --target targets/riscv64-wos.json
 ```
 
 ---
 
 ## ▶️ Run in QEMU (ARM64)
-On macOS, using UTM is recommended for convenience and stability.
-WOS runs perfectly inside a UTM ARM64 virtual machine.
-
-Generate the QEMU virt machine DTB in the `kernel` Directory (generate only once):
+Generate the QEMU virt machine DTB once in the `kernel` Directory:
 ```bash
 qemu-system-aarch64 \
     -M virt \
@@ -142,7 +182,7 @@ qemu-system-aarch64 \
     -nographic
 ```
 
-Run the kernel with the generated DTB, e.g. in `kernel` Directory:
+Run the kernel:
 ```bash
 qemu-system-aarch64 \
     -M virt \
@@ -161,11 +201,23 @@ and run the kernel from this image:
 qemu-system-aarch64   -M virt   -cpu cortex-a72   -kernel kernel8.img   -nographic
 ```
 
-### 📝 Interrupt Controller (GIC)
+> Note (ARM64): Interrupt Controller (GIC)
+>
+> WOS now includes **working GICv2 initialization** (Distributor + CPU interface). At this stage, the kernel still uses **identity-mapped physical addresses** for MMIO (e.g., UART at 0x0900_0000, GICD at 0x0800_0000), because the high-half virtual address space (DEVICE_BASE at 0xFFFF_FD00_0000_0000) is not enabled yet.
+>
+> This is intentional: interrupts, timers, and exception handling are brought up first in a simple identity-mapped environment before enabling the full high-half kernel with TTBR1 and virtualized device mappings.
 
-WOS now includes **working GICv2 initialization** (Distributor + CPU interface). At this stage, the kernel still uses **identity-mapped physical addresses** for MMIO (e.g., UART at 0x0900_0000, GICD at 0x0800_0000), because the high-half virtual address space (DEVICE_BASE at 0xFFFF_FD00_0000_0000) is not enabled yet.
+## ▶️ Run in QEMU (RISC‑V)
+Run **without OpenSBI** (`-bios none`):
 
-This is intentional: interrupts, timers, and exception handling are brought up first in a simple identity-mapped environment before enabling the full high-half kernel with TTBR1 and virtualized device mappings.
+```bash
+qemu-system-riscv64 \
+    -M virt \
+    -cpu rv64 \
+    -kernel target/riscv64-wos/debug/kernel \
+    -nographic \
+    -bios none
+```
 
 ---
 
@@ -179,11 +231,13 @@ It is a functional minimal kernel, serving as a foundation for:
 - a user space
 - an AI‑native runtime
 
-The interrupt controller (GICv2) is now initialized and functional, using identity-mapped MMIO as a temporary bring-up strategy.
+ARM64 is fully functional; RISC‑V is in early bring‑up.
 
-## 🗺️ Roadmap (Kernel)
+## 🗺️ Roadmap
 
-- [x] ARM64 boot + Rust kernel
+### ARM64
+
+- [x] boot + Rust kernel
 - [x] UART output
 - [x] MMU + page tables
 - [x] Physical page allocator
@@ -196,11 +250,26 @@ The interrupt controller (GICv2) is now initialized and functional, using identi
 - [ ] User space
 - [ ] ELF loader
 
+### RISC‑V
+
+- [x] Boot + Rust entry
+- [x] UART “Hello”
+- [x] Working linker script
+- [x] Custom target JSON
+- [ ] Trap handler
+- [ ] Sv39 MMU
+- [ ] Hart management
+- [ ] Device tree parsing
+- [ ] UART + timer drivers
+- [ ] Virtual memory
+- [ ] Scheduler
+
 ---
 
 ## 🤝 Contributing
-WOS is still in an early experimental stage, but contributions are welcome — especially in the areas of:
+Contributions are welcome — especially in the areas of:
 - ARM64 architecture & low‑level bring‑up
+- RISC‑V bring‑up
 - Rust no_std development
 - memory management
 - exception handling & timers
@@ -240,7 +309,7 @@ If you're unsure whether a contribution fits the project, feel free to open an i
 WOS uses a **dual licensing model**:
 
 ### **1. Kernel (this repository) — MIT License**
-All publicly available components of WOS — including the Rust ARM64 kernel, boot code, and supporting infrastructure — are released under the **MIT License**.  
+All publicly available components of WOS are released under the **MIT License**.  
 This makes the kernel freely usable for learning, experimentation, and derivative work.
 
 ### **2. AI‑native components — Proprietary**

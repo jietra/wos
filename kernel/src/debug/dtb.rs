@@ -18,6 +18,7 @@ pub static DTB: Aligned<&[u8]> = Aligned(include_bytes!("../virt.dtb"));
 
 // --- Debug: print some info about the DTB (for debugging purposes) --------------------------------
 pub unsafe fn debug_dtb() {
+    puts("| CHECK | Reading DTB...\n");
     let dtb = DTB;
     let addr = dtb.as_ptr() as u64;
     puts("\tDTB addr \t= 0x"); put_hex_ln(addr);

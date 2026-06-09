@@ -1,4 +1,4 @@
-use crate::arch::aarch64::linker_symbols as ls;
+use crate::arch::aarch64::boot::linker_symbols as ls;
 use crate::memory::memory_layout::layout::DEVICE_BASE;
 
 // -----------------------------------------------------------------------------

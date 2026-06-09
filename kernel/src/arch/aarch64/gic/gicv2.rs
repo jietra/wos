@@ -1,4 +1,4 @@
-// kernel/src/arch/aarch64/interrupts/gicv2.rs
+// src/arch/aarch64/cpu/gicv2.rs
 
 pub mod gicv2 {
     use crate::memory::memory_layout::layout::DEVICE_BASE;

@@ -1,6 +1,3 @@
-[build]
-target = "targets/aarch64-wos.json"
-
 [unstable]
 build-std = ["core"]
 json-target-spec = true
@@ -14,7 +11,18 @@ panic = "abort"
 [toolchain]
 channel = "nightly"
 
+[target.aarch64-unknown-none]
+rustflags = ["-C", "link-arg=-Tlinker/aarch64.ld"]
+
+[target.riscv64gc-unknown-none-elf]
+rustflags = ["-C", "link-arg=-Tlinker/riscv64.ld"]
+
 [target.aarch64-wos]
 rustflags = [
-  "-C", "link-arg=-Tlinker.ld",
+    "-C", "link-arg=-Tlinker/aarch64.ld",
+]
+
+[target.riscv64-wos]
+rustflags = [
+    "-C", "link-arg=-Tlinker/riscv64.ld"
 ]

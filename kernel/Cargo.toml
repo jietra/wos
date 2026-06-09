@@ -11,3 +11,6 @@ panic = "abort"
 [profile.release]
 panic = "abort"
 lto = true
+
+[build-dependencies]
+cc = "1.0"
