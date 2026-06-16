@@ -68,10 +68,10 @@ pub fn init_arch() {
     puts("(c) 2026 Ulrich Tan\n\n");
 
     puts("[ OK ] CPU initialized\n");
-    puts("[ OK ] UART ready\n");
     puts("[ OK ] Exception vectors initialized\n");
     puts("[ OK ] MMU initialized\n");
-    puts("[ OK ] GICv2 initialized\n\n");
+    puts("[ OK ] GICv2 initialized\n");
+    puts("[ OK ] UART ready\n\n");
 
     puts("Booting kernel...\n\n");
 
