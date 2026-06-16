@@ -1,4 +1,10 @@
 # WOS — W. Operating System
+
+<p align="center">
+  <img src="docs/screenshots/wos-aarch64-boot.png" width="48%" />
+  <img src="docs/screenshots/wos-riscv-boot.png" width="48%" />
+</p>
+
 ![Status](https://img.shields.io/badge/status-kernel_ready-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
@@ -23,7 +29,6 @@ WOS is **Rust-first**, **multi-architecture**, and designed to be **educational 
 ## Table of Contents
 - [Project Vision](#-project-vision)
 - [Multi-Architecture Support](#-multi-architecture-support)
-- [Screenshots](#-screenshots)
 - [Current Features](#-current-features)
 - [Project Structure](#-project-structure)
 - [Prerequisites](#-prerequisites)
@@ -100,16 +105,6 @@ kernel/src/arch/
   ├── aarch64/
   └── riscv64/
 ```
----
-
-## 📸 Screenshots
-
-<p align="center">
-  <img src="docs/screenshots/wos-aarch64-boot.png" width="48%" />
-  <img src="docs/screenshots/wos-riscv-boot.png" width="48%" />
-</p>
-
-
 ---
 
 ## ✨ Current Features
