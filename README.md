@@ -23,6 +23,7 @@ WOS is **Rust-first**, **multi-architecture**, and designed to be **educational 
 ## Table of Contents
 - [Project Vision](#-project-vision)
 - [Multi-Architecture Support](#-multi-architecture-support)
+- [Screenshots](#-screenshots)
 - [Current Features](#-current-features)
 - [Project Structure](#-project-structure)
 - [Prerequisites](#-prerequisites)
@@ -90,6 +91,8 @@ Early bring‑up:
 - working linker script
 - custom target JSON
 - correct code model (medium)
+- working trap handler (Rust + trap.S)
+- early exception debugging (mepc/mcause/mtval)
 - Architecture‑specific code lives in:
 
 ```
@@ -97,6 +100,16 @@ kernel/src/arch/
   ├── aarch64/
   └── riscv64/
 ```
+---
+
+## 📸 Screenshots
+
+<p align="center">
+  <img src="docs/screenshots/wos-aarch64-boot.png" width="48%" />
+  <img src="docs/screenshots/wos-riscv-boot.png" width="48%" />
+</p>
+
+
 ---
 
 ## ✨ Current Features
@@ -112,6 +125,8 @@ kernel/src/arch/
 - Debug helpers
 - QEMU‑friendly environment
 - Basic GICv2 initialization (Distributor + CPU interface), currently using identity-mapped MMIO (ARM64)
+- RISC‑V trap handling (synchronous exceptions)
+- Early RISC‑V exception pipeline (mtvec, trap.S, mret)
 
 > **Note (ARM64):**  
 > Device MMIO is currently accessed through identity-mapped physical addresses.
@@ -256,8 +271,10 @@ ARM64 is fully functional; RISC‑V is in early bring‑up.
 - [x] UART “Hello”
 - [x] Working linker script
 - [x] Custom target JSON
-- [ ] Trap handler
-- [ ] Sv39 MMU
+- [x] Trap handler (mstatus, mtvec, mepc, mcause, mtval)
+- [x] Working synchronous exception handling (ecall, illegal instruction)
+- [ ] Interrupt handling (timer + external)
+- [ ] Sv39 MMU (paging)
 - [ ] Hart management
 - [ ] Device tree parsing
 - [ ] UART + timer drivers

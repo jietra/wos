@@ -13,13 +13,14 @@ use cpu::exceptions::init_exceptions;
 use mmu::{init_mair, init_tcr, init_ttbr0, enable_mmu, init_page_tables};
 use gic::gicv2::gicv2;
 
-use core::arch::global_asm;
+//use core::arch::global_asm;
 
 // -----------------------------------------------------------------------------
 // Assembly entry point (_start and exception vectors))
+// No longer needed -> now in build.rs (harmonized with RISC-V arch)
 // -----------------------------------------------------------------------------
-global_asm!(include_str!("boot/start.S"));
-global_asm!(include_str!("cpu/exception_vectors.S"));  // Let the linker know about the exception vectors (required for interrupts, etc.)
+//global_asm!(include_str!("boot/start.S"));
+//global_asm!(include_str!("cpu/exception_vectors.S"));  // Let the linker know about the exception vectors (required for interrupts, etc.)
 
 pub fn init_arch() {
     puts("| BOOT  | Booting WOS...\n");
@@ -61,8 +62,29 @@ pub fn init_arch() {
     unsafe { gicv2::init(); }
     puts("\tGIC enabled\n");
 
+    puts("\n==========================================================\n");
+
+    puts("\nWOS-AARCH64 Firmware v0.1\n");
+    puts("(c) 2026 Ulrich Tan\n\n");
+
+    puts("[ OK ] CPU initialized\n");
+    puts("[ OK ] UART ready\n");
+    puts("[ OK ] Exception vectors initialized\n");
+    puts("[ OK ] MMU initialized\n");
+    puts("[ OK ] GICv2 initialized\n\n");
+
+    puts("Booting kernel...\n\n");
+
+    puts("██╗    ██╗ ██████╗  ██████╗\n");
+    puts("██║    ██║██╔═══██╗██╔════╝\n");
+    puts("██║ █╗ ██║██║   ██║ █████╗ \n");
+    puts("██║███╗██║██║   ██║     ██║\n");
+    puts("╚███╔███╔╝╚██████╔╝██████╔╝\n");
+    puts(" ╚══╝╚══╝  ╚═════╝ ╚═════╝ \n\n");
+    puts(" W O S   –   A A R C H 6 4\n\n");
+
     // --- Welcome message --------------------------------
-    puts("\n-------------------------------\n");
-    puts(  "|       Hello from WOS!       |"  );
-    puts("\n-------------------------------\n");
+    puts("\n---------------------------------------\n");
+    puts(  "|       Hello from WOS-AARCH64!       |"  );
+    puts("\n---------------------------------------\n");
 }
