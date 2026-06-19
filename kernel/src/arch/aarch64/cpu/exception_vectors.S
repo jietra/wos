@@ -26,7 +26,7 @@ exception_vectors:              // Base vectors table for EL1
     .balign 0x80
 
     // -- 06. 0x280: IRQ from current EL with SPx
-    b irq_current_spx
+    b irq_current_spx           // <----- Interrupts ----- //
     .balign 0x80
 
     // -- 07. 0x300: FIQ from current EL with SPx
@@ -100,9 +100,37 @@ sync_current_spx:
     bl sync_current_spx_rust
     eret
 
-.global irq_current_spx
+.global irq_current_spx             // <----- Interrupts ----- //
 irq_current_spx:
+    // Store context (e.g. x0-x17 + lr)
+    sub     sp, sp, #(18 * 8)
+    stp     x0,  x1,  [sp, #(0 * 16)]
+    stp     x2,  x3,  [sp, #(1 * 16)]
+    stp     x4,  x5,  [sp, #(2 * 16)]
+    stp     x6,  x7,  [sp, #(3 * 16)]
+    stp     x8,  x9,  [sp, #(4 * 16)]
+    stp     x10, x11, [sp, #(5 * 16)]
+    stp     x12, x13, [sp, #(6 * 16)]
+    stp     x14, x15, [sp, #(7 * 16)]
+    stp     x16, x17, [sp, #(8 * 16)]
+    str     x30,      [sp, #(9 * 16)]   // LR
+
+    //bl irq_handler_rust
     bl irq_current_spx_rust
+
+    // Restore context
+    ldp     x0,  x1,  [sp, #(0 * 16)]
+    ldp     x2,  x3,  [sp, #(1 * 16)]
+    ldp     x4,  x5,  [sp, #(2 * 16)]
+    ldp     x6,  x7,  [sp, #(3 * 16)]
+    ldp     x8,  x9,  [sp, #(4 * 16)]
+    ldp     x10, x11, [sp, #(5 * 16)]
+    ldp     x12, x13, [sp, #(6 * 16)]
+    ldp     x14, x15, [sp, #(7 * 16)]
+    ldp     x16, x17, [sp, #(8 * 16)]
+    ldr     x30,      [sp, #(9 * 16)]
+    add     sp, sp, #(18 * 8)
+
     eret
 
 .global fiq_current_spx

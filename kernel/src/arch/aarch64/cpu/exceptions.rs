@@ -5,6 +5,10 @@ use crate::utils::print::put_hex_ln;
 
 // -----------------------------------------------------------------------------
 
+extern "C" {
+    static exception_vectors: u8;
+}
+
 #[no_mangle]
 extern "C" fn sync_current_sp0_rust() {
     puts("[SYNC] current EL, SP0\n");
@@ -56,6 +60,7 @@ extern "C" fn sync_current_spx_rust() {
 #[no_mangle]
 extern "C" fn irq_current_spx_rust() {
     puts("[IRQ] current EL, SPx\n");
+    crate::arch::aarch64::irq::handler::handle_irq();   // handle IRQ
 }
 
 #[no_mangle]
@@ -116,27 +121,21 @@ extern "C" fn serr_lower_32_rust() {
 // Exception vector initialization (sets VBAR_EL1 to point to our exception vectors)
 // -----------------------------------------------------------------------------
 pub unsafe fn init_exceptions() {
-    extern "C" {
-        static exception_vectors: u8;
-    }
 
-    let addr = unsafe { &exception_vectors as *const _ as u64 };
+    let addr = &exception_vectors as *const _ as u64 ;
     puts("\tException vect \t= 0x"); put_hex_ln(addr);
 
     // --- Set VBAR_EL1 to point to our exception vectors and synchronize the instruction stream ---
-    unsafe {
-        core::arch::asm!(
-            "msr VBAR_EL1, {0}",
-            in(reg) addr,
-            options(nostack, preserves_flags),
-        ); // Put the address of our exception vectors in VBAR_EL1
-        core::arch::asm!("isb"); // Synchronize the instruction stream to ensure the new VBAR_EL1 value is used immediately
-    }
+    core::arch::asm!(
+        "msr VBAR_EL1, {0}",
+        in(reg) addr,
+        options(nostack, preserves_flags),
+    ); // Put the address of our exception vectors in VBAR_EL1
+    core::arch::asm!("isb"); // Synchronize the instruction stream to ensure the new VBAR_EL1 value is used immediately
+    
     
     // --- Read VBAR_EL1 to confirm it's correctly set to the address of our exception vectors
     let vbar: u64;
-    unsafe {
-        core::arch::asm!("mrs {0}, VBAR_EL1", out(reg) vbar);
-    }
+    core::arch::asm!("mrs {0}, VBAR_EL1", out(reg) vbar);
     puts("\tVBAR_EL1 \t= 0x"); put_hex_ln(vbar);
 }

@@ -98,7 +98,8 @@ Early bring‑up:
 - correct code model (medium)
 - working trap handler (Rust + trap.S)
 - early exception debugging (mepc/mcause/mtval)
-- Architecture‑specific code lives in:
+
+Architecture‑specific code lives in:
 
 ```
 kernel/src/arch/
@@ -119,7 +120,7 @@ kernel/src/arch/
 - Physical page allocator (4K pages)
 - Debug helpers
 - QEMU‑friendly environment
-- Basic GICv2 initialization (Distributor + CPU interface), currently using identity-mapped MMIO (ARM64)
+- Working GICv2 interrupt subsystem (Distributor + CPU interface + CNTP timer + SGI), currently using identity-mapped MMIO (ARM64)
 - RISC‑V trap handling (synchronous exceptions)
 - Early RISC‑V exception pipeline (mtvec, trap.S, mret)
 
@@ -213,9 +214,11 @@ qemu-system-aarch64   -M virt   -cpu cortex-a72   -kernel kernel8.img   -nograph
 
 > Note (ARM64): Interrupt Controller (GIC)
 >
-> WOS now includes **working GICv2 initialization** (Distributor + CPU interface). At this stage, the kernel still uses **identity-mapped physical addresses** for MMIO (e.g., UART at 0x0900_0000, GICD at 0x0800_0000), because the high-half virtual address space (DEVICE_BASE at 0xFFFF_FD00_0000_0000) is not enabled yet.
+> WOS now includes **working GICv2 initialization** (Distributor + CPU interface + Timer PPI + SGI). At this stage, the kernel still uses **identity-mapped physical addresses** for MMIO (e.g., UART at 0x0900_0000, GICD at 0x0800_0000), because the high-half virtual address space (DEVICE_BASE at 0xFFFF_FD00_0000_0000) is not enabled yet.
 >
 > This is intentional: interrupts, timers, and exception handling are brought up first in a simple identity-mapped environment before enabling the full high-half kernel with TTBR1 and virtualized device mappings.
+
+> Note (ARM64): Timer (CNTP) and SGI interrupts are now fully working under GICv2 in the identity‑mapped early kernel.
 
 ## ▶️ Run in QEMU (RISC‑V)
 Run **without OpenSBI** (`-bios none`):
@@ -247,12 +250,13 @@ ARM64 is fully functional; RISC‑V is in early bring‑up.
 
 ### ARM64
 
-- [x] boot + Rust kernel
+- [x] Boot + Rust kernel
 - [x] UART output
 - [x] MMU + page tables
 - [x] Physical page allocator
-- [x] Basic GICv2 bring-up (Distributor + CPU interface)
-- [ ] Timer interrupts (CNTV)
+- [x] Working GICv2 interrupt subsystem (Distributor + CPU interface + timer PPI + SGI)
+- [x] Timer interrupts (CNTP, PPI 30)
+- [x] SGI delivery (IPI)
 - [ ] High-half virtual device mapping (UART, GIC, timers) using TTBR1 + DEVICE_BASE
 - [ ] Virtual memory allocator (heap, using L3 pages)
 - [ ] Minimal scheduler

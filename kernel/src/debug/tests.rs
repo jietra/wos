@@ -5,7 +5,7 @@ use crate::utils::print::put_hex_ln;
 
 static TEST: u64 = 0x12345678ABCDEF00;
 extern "C" {
-    fn _start();
+    fn _boot();
 }
 
 pub fn tests() {
@@ -16,10 +16,10 @@ pub fn tests() {
         puts("\t\taddr(TEST) \t= "); put_hex_ln(&TEST as *const _ as u64);
         let v = core::ptr::read_volatile(&TEST);
         puts("\t\tr_vol(TEST) \t= "); put_hex_ln(v);
-        let va = _start as *const () as u64;
+        let va = _boot as *const () as u64;
         puts("\t\tVA(_start) \t= "); put_hex_ln(va);
         let pa: u64;
-        core::arch::asm!("adrp {0}, _start", out(reg) pa);
+        core::arch::asm!("adrp {0}, _boot", out(reg) pa);
         puts("\t\tPA(_start) \t= "); put_hex_ln(pa);
         let p = va as *const u32;
         let w = core::ptr::read_volatile(p) as u64;
@@ -45,12 +45,12 @@ pub fn tests() {
     }
     puts("\t\tESR_EL1 = 0x"); put_hex_ln(esr);
     puts("\t\tFAR_EL1 = 0x"); put_hex_ln(far);
-    /*
+}
+
+pub fn test_break() {
     puts("\t\t----- BREAK... -----\n");
     unsafe {
         core::arch::asm!("brk #0");
     }
     puts("\t\tAfter BRK\n");
-    */
-
 }

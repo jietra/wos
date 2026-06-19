@@ -1,37 +1,36 @@
+// arch/aarch64/mod.rs
+
 pub mod boot;
 pub mod mmio;
 pub mod cpu;
 pub mod mmu;
 pub mod gic;
 pub mod timer;
+pub mod irq;
+pub mod uart;
 
 use crate::drivers::uart::puts;
 use crate::memory::phys::init_phys_alloc;
-
 use boot::linker_symbols::_kernel_end; // defined in linker script: required for initializing physical memory allocator
 use cpu::exceptions::init_exceptions;
 use mmu::{init_mair, init_tcr, init_ttbr0, enable_mmu, init_page_tables};
 use gic::gicv2::gicv2;
 
-//use core::arch::global_asm;
-
-// -----------------------------------------------------------------------------
-// Assembly entry point (_start and exception vectors))
-// No longer needed -> now in build.rs (harmonized with RISC-V arch)
-// -----------------------------------------------------------------------------
-//global_asm!(include_str!("boot/start.S"));
-//global_asm!(include_str!("cpu/exception_vectors.S"));  // Let the linker know about the exception vectors (required for interrupts, etc.)
-
 pub fn init_arch() {
     puts("| BOOT  | Booting WOS...\n");
 
-    // | CHECK | Reading current EL --------------------------------
-    unsafe { crate::debug::cpu::read_current_el(); }
+    // | CHECK | CPU checks  --------------------------------
+    unsafe {
+        crate::uart_println!("| CHECK | CPU checks...");
+        crate::debug::cpu::read_current_el();   // Reading current EL
+        crate::debug::cpu::dump_mpidr();        // Reading current CPU
+        crate::debug::cpu::read_daif();         // Reading DAIF to check whether IRQ are unmasked after boot
+    }
 
     // --- Initializing exception vectors --------------------------------
     puts("| INIT. | Initializing exception vectors...\n");
     unsafe { init_exceptions(); }     // install VBAR_EL1 right away
-    
+
     // | CHECK | Reading and parsing the DTB --------------------------------
     unsafe {
         crate::debug::dtb::debug_dtb();
@@ -39,8 +38,11 @@ pub fn init_arch() {
     }
 
     // | CHECK | TESTING SEQUENCE --------------------------------
-    unsafe { crate::debug::tests::tests(); }
-    
+    unsafe {
+        crate::debug::tests::tests();
+        //crate::debug::tests::test_break();
+    }    
+/*
     // --- Initializing MMU and page tables --------------------------------
     puts("| INIT. | Initializing MMU...\n");
     unsafe {
@@ -56,10 +58,14 @@ pub fn init_arch() {
 
     // | CHECK | Testing memory access after MMU enabled --------------------------------
     unsafe { crate::debug::memory::test_memory(); }
-    
+*/
+
     // --- Initializing Gicv2 -----------------------------
     puts("| INIT. | Initializing GIC v2...\n");
-    unsafe { gicv2::init(); }
+    unsafe { 
+        gicv2::init();
+        gicv2::dump_gic();
+    }
     puts("\tGIC enabled\n");
 
     puts("\n==========================================================\n");
@@ -86,5 +92,16 @@ pub fn init_arch() {
     // --- Welcome message --------------------------------
     puts("\n---------------------------------------\n");
     puts(  "|       Hello from WOS-AARCH64!       |"  );
-    puts("\n---------------------------------------\n");
+    puts("\n---------------------------------------\n\n");
+
+    // | CHECK | Sending an SGI "this CPU only" ---------------------
+    unsafe {
+        irq::debug_irq::sgi_irq();
+    }
+
+    crate::uart_println!("\n");
+
+    // --- Call timer -------------------------------------
+    unsafe { crate::arch::aarch64::timer::cntp::cntp::init(); }
+
 }

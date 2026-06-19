@@ -1,4 +1,4 @@
-ENTRY(_start)
+ENTRY(_boot)
 
 SECTIONS
 {
@@ -8,7 +8,7 @@ SECTIONS
     /* Executable code */
     .text : ALIGN(4K) {
         _text_start = .;
-        KEEP(*(.text._start))
+        KEEP(*(.text._boot))
         *(.text*)
         _text_end = .;
     }
