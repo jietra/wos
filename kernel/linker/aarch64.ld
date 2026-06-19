@@ -15,7 +15,9 @@ SECTIONS
 
     /* Align explicitly a specific section .exceptions */
     .exceptions : ALIGN(2048) {
+        _exceptions_start = .;
         KEEP(*(.exceptions))
+        _exceptions_end = .;
     }
 
     /* Read only data */

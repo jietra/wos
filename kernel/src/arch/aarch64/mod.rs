@@ -42,7 +42,7 @@ pub fn init_arch() {
         crate::debug::tests::tests();
         //crate::debug::tests::test_break();
     }    
-/*
+
     // --- Initializing MMU and page tables --------------------------------
     puts("| INIT. | Initializing MMU...\n");
     unsafe {
@@ -58,7 +58,7 @@ pub fn init_arch() {
 
     // | CHECK | Testing memory access after MMU enabled --------------------------------
     unsafe { crate::debug::memory::test_memory(); }
-*/
+
 
     // --- Initializing Gicv2 -----------------------------
     puts("| INIT. | Initializing GIC v2...\n");
@@ -93,6 +93,28 @@ pub fn init_arch() {
     puts("\n---------------------------------------\n");
     puts(  "|       Hello from WOS-AARCH64!       |"  );
     puts("\n---------------------------------------\n\n");
+
+    use boot::linker_symbols::_text_start;
+    use boot::linker_symbols::_text_end;
+
+    unsafe {
+        let text_start = &_text_start as *const u8 as u64;
+        let text_end   = &_text_end   as *const u8 as u64;
+
+        crate::uart_println!("_text_start = 0x{:016x}", text_start);
+        crate::uart_println!("_text_end   = 0x{:016x}", text_end);
+    }
+
+    use boot::linker_symbols::_stack_start;
+    use boot::linker_symbols::_stack_top;
+
+    unsafe {
+        let stack_start = &_stack_start as *const u8 as u64;
+        let stack_top   = &_stack_top   as *const u8 as u64;
+
+        crate::uart_println!("_stack_start = 0x{:016x}", stack_start);
+        crate::uart_println!("_stack_top   = 0x{:016x}", stack_top);
+    }
 
     // | CHECK | Sending an SGI "this CPU only" ---------------------
     unsafe {

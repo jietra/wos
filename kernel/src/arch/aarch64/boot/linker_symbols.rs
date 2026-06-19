@@ -19,4 +19,8 @@ extern "C" {
     // Kernel global bounds
     pub static _kernel_start: u8;
     pub static _kernel_end: u8;
+
+    // Exceptions (incl. IRQ etc.)
+    pub static _exceptions_start: u8;
+    pub static _exceptions_end: u8;
 }

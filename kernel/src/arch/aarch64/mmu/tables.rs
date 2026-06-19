@@ -1,3 +1,5 @@
+// arch/aarch64/mmu/tables.rs
+
 use crate::arch::aarch64::boot::linker_symbols as ls;
 use crate::memory::memory_layout::layout::DEVICE_BASE;
 
@@ -95,17 +97,20 @@ pub unsafe fn map_page(virt: u64, phys: u64, attr: PageAttr) {
 pub unsafe fn map_kernel_l3() {
     let l1_1_base = 1u64 << 30;     // 0x4000_0000
 
+    let kernel_start = &ls::_kernel_start as *const u8 as u64;
+    let kernel_end   = &ls::_stack_top    as *const u8 as u64;
+
+    let exc_start    = &ls::_exceptions_start as *const u8 as u64;
+    let exc_end      = &ls::_exceptions_end   as *const u8 as u64;
+
     let text_start   = &ls::_text_start   as *const u8 as u64;
     let text_end     = &ls::_text_end     as *const u8 as u64;
     let rodata_start = &ls::_rodata_start as *const u8 as u64;
     let rodata_end   = &ls::_rodata_end   as *const u8 as u64;
-    let data_start   = &ls::_data_start   as *const u8 as u64;
-    let data_end     = &ls::_data_end     as *const u8 as u64;
-    let bss_start    = &ls::_bss_start    as *const u8 as u64;
-    let bss_end      = &ls::_bss_end      as *const u8 as u64;
 
-    // Suppose all fits in the same 2 MiB bloc
-    let l2_index = (((text_start - l1_1_base) >> 21) & 0x1FF) as usize;
+    // Suppose the whole kernel fits in 1-2 GiB
+    // Use only one L2 entry
+    let l2_index       = (((kernel_start - l1_1_base) >> 21) & 0x1FF) as usize;
     let l2_region_base = l1_1_base + ((l2_index as u64) << 21);
 
     // L2 -> L3
@@ -116,15 +121,22 @@ pub unsafe fn map_kernel_l3() {
         let va = l2_region_base + ((i as u64) << 12);
         let phys = va;              // identity mapping
 
-        let (attr_index, ap, exec) = if va >= text_start && va < text_end {
-            (2, 0b10, true)         // .text : Normal WB, RO, executable
-        } else if va >= rodata_start && va < rodata_end {
-            (2, 0b10, false)        // .rodata : Normal WB, RO, XN
-        } else if (va >= data_start && va < data_end) || (va >= bss_start && va < bss_end) {
-            (2, 0b00, false)        // .data/.bss : Normal WB, RW, XN
-        } else {
-            (2, 0b00, false)        // the rest: RW, XN
-        };
+        // Map only what's in [kernel_start, kernel_end)
+        if va < kernel_start || va >= kernel_end {
+            L3_KERNEL_TABLE.0[i] = 0;
+            continue;
+        }
+        
+        let (attr_index, ap, exec) =
+            if va >= text_start && va < text_end {
+                (2, 0b10, true)         // .text : Normal WB, RO, executable
+            } else if va >= exc_start && va < exc_end {
+                (2, 0b10, true)         // .exceptions : RO + exec
+            } else if va >= rodata_start && va < rodata_end {
+                (2, 0b10, false)        // .rodata : Normal WB, RO, XN
+            } else {
+                (2, 0b00, false)        // the rest: RW, XN
+            };
 
         L3_KERNEL_TABLE.0[i] = l3_page_entry(phys, attr_index, exec, ap);
     }
@@ -143,14 +155,14 @@ pub unsafe fn init_page_tables() {
     // High-half devices: L0[511] → L1_DEVICE
     L0_TABLE.0[511] = (&raw const L1_DEVICE_TABLE as *const _ as u64) | 0b11;
     L1_DEVICE_TABLE.0[0] = (&raw const L2_DEVICE_TABLE as *const _ as u64) | 0b11;
-    
+
+    // High-half mapping
     // Map GICD
     map_device(
         0x0800_0000,
         DEVICE_BASE as u64 + 0x0000_0000,
         0x10000,
     );
-
     // Map GICC
     map_device(
         0x0801_0000,
