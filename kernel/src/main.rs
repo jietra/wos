@@ -7,6 +7,8 @@ mod utils; // required for include shims C-implemented functions enabling puts, 
 mod memory;
 mod debug;
 mod time;
+mod scheduler;
+mod tasks;
 
 use core::panic::PanicInfo;
 

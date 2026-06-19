@@ -149,5 +149,15 @@ pub fn kmain() -> ! {
             crate::uart_println!("[tick] {}", t);
             last = t;
         }
+
+        let t = crate::time::tick::tick_now();
+        if t % 100 == 0 {   // execute tasks only every 100 IRQs
+            match crate::scheduler::current() {
+                0 => crate::tasks::task0(),
+                1 => crate::tasks::task1(),
+                2 => crate::tasks::task2(),
+                _ => {}
+            }
+        }
     }
 }
