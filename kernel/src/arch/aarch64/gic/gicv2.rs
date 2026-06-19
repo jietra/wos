@@ -11,9 +11,9 @@ pub mod gicv2 {
     const GICD_VADDR: usize = DEVICE_BASE + 0x0000_0000;
     const GICC_VADDR: usize = DEVICE_BASE + 0x0001_0000;
 
-    // For now, we use the physical addresses...
-    const GICD_BASE: usize = GICD_PADDR;
-    const GICC_BASE: usize = GICC_PADDR;
+    // Using PA temporarily (vs VA when TTBR1 + proper L2/L3 mapping)
+    const GICD_BASE: usize = GICD_PADDR; //GICD_VADDR;
+    const GICC_BASE: usize = GICC_PADDR; //GICC_VADDR;
 
     // Main registers offsets (GICv2)
     const GICD_CTLR: usize       = 0x000;

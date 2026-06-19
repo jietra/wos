@@ -6,6 +6,7 @@ mod drivers;
 mod utils; // required for include shims C-implemented functions enabling puts, put_hex_ln, etc.
 mod memory;
 mod debug;
+mod time;
 
 use core::panic::PanicInfo;
 

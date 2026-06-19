@@ -126,4 +126,28 @@ pub fn init_arch() {
     // --- Call timer -------------------------------------
     unsafe { crate::arch::aarch64::timer::cntp::cntp::init(); }
 
+    // --- Enable timer IRQ in GIC ------------------------
+    unsafe { crate::arch::aarch64::gic::gicv2::gicv2::enable_irq(crate::arch::aarch64::timer::cntp::cntp::TIMER_IRQ); }
+
+    // --- Enter kernel main loop -------------------------
+    crate::arch::aarch64::kmain();
+
+}
+
+pub fn kmain() -> ! {
+    use crate::time::tick::tick_now;
+
+    crate::uart_println!("Kernel entering main loop...");
+
+    let mut last = 0;
+
+    loop {
+        unsafe { core::arch::asm!("wfi", options(nostack, preserves_flags)); } //wait for interrupt (wfi)
+
+        let t = tick_now();
+        if t != last && t % 100 == 0 {
+            crate::uart_println!("[tick] {}", t);
+            last = t;
+        }
+    }
 }

@@ -5,11 +5,12 @@ use crate::arch::aarch64::timer::cntp::cntp as timer;
 use crate::arch::aarch64::uart::pl011;
 
 pub fn handle_irq() {
-    crate::uart_println!("[IRQ] IRQ fired!");
+    //crate::uart_println!("[IRQ] IRQ fired!");
 
     unsafe {
-        let ispend_before = core::ptr::read_volatile((gicv2::GICD_PADDR + 0x200) as *const u32);
-        crate::uart_println!("[IRQ] ISPENDR0 before ack = 0x{:08x}", ispend_before);
+        // Debug:
+        //let ispend_before = core::ptr::read_volatile((gicv2::GICD_PADDR + 0x200) as *const u32);
+        //crate::uart_println!("[IRQ] ISPENDR0 before ack = 0x{:08x}", ispend_before);
 
         let iar = gicv2::ack(); // read GICC_IAR
         let id  = iar & 0x3FF;

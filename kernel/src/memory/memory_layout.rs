@@ -1,3 +1,5 @@
+// src/memory/memory_layout.rs
+
 //! Virtual memory layout for the WOS kernel.
 //!
 //! This file defines the *virtual* address space organization of the kernel.
@@ -38,7 +40,7 @@ pub mod layout {
     pub const KERNEL_HEAP_SIZE: usize = 1 * TB; // adjustable
 
     /// Device MMIO region: UART, GIC, timers, virtio, etc.
-    pub const DEVICE_BASE: usize = 0xFFFF_FD00_0000_0000;
+    pub const DEVICE_BASE: usize = 0x0900_0000;//0xffff000000000000;//0xFFFF_FD00_0000_0000;
     pub const DEVICE_SIZE: usize = 1 * TB;
 
     /// Reserved region: kept unmapped for future kernel subsystems.

@@ -59,7 +59,7 @@ extern "C" fn sync_current_spx_rust() {
 
 #[no_mangle]
 extern "C" fn irq_current_spx_rust() {
-    puts("[IRQ] current EL, SPx\n");
+    //puts("[IRQ] current EL, SPx\n");
     crate::arch::aarch64::irq::handler::handle_irq();   // handle IRQ
 }
 
