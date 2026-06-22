@@ -2,6 +2,9 @@
 
 pub mod cntp {
     pub const TIMER_IRQ: u32 = 30;
+    static mut FREQ: u64 = 62_500_000;  // default value to be overrid in init()
+    static mut TICKS: u64 = 62_500_000; // default value to be overrid in init()
+    pub const TIMER_FREQ: u64 = 1;      // 1Hz (chosen for log readability)
 
     #[inline(always)]
     unsafe fn write_cntp_tval(val: u64) {
@@ -14,25 +17,16 @@ pub mod cntp {
     }
 
     pub unsafe fn init() {
-        crate::uart_println!("| INIT. | Firing cntp init()...");
+        crate::uart_println!("| INIT. | Init cntp...");
+        core::arch::asm!("mrs {}, cntfrq_el0", out(reg) FREQ);
+        crate::uart_println!("\tFREQ=",FREQ);
+        TICKS = FREQ / TIMER_FREQ;
 
-        let mut freq: u64 = 0;
-        core::arch::asm!("mrs {}, cntfrq_el0", out(reg) freq);
-
-        let ticks = freq / 10;
-
-        write_cntp_tval(ticks);
-        write_cntp_ctl(1);             // ENABLE=1, IMASK=0
+        write_cntp_tval(TICKS); // set "ticks" at cntfrq_el0 frequency i.e. frequency at 1 Hz (use (FREQ/10) for 10Hz etc.)
+        write_cntp_ctl(1);     // ENABLE=1, IMASK=0
     }
 
     pub unsafe fn on_tick() {
-        // reload timer
-        let mut freq: u64 = 0;
-        core::arch::asm!("mrs {}, cntfrq_el0", out(reg) freq);
-        let ticks = freq / 10;
-        write_cntp_tval(ticks);
-
-        crate::time::tick::on_tick();  // increment global counter
-        //crate::uart_println!("[TIMER] tick");
+        write_cntp_tval(TICKS); // reload timer (at 1Hz here)
     }
 }

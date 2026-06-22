@@ -11,7 +11,7 @@ pub mod uart;
 
 use crate::drivers::uart::puts;
 use crate::memory::phys::init_phys_alloc;
-use boot::linker_symbols::_kernel_end; // defined in linker script: required for initializing physical memory allocator
+use boot::linker_symbols::_kernel_end;      // defined in linker script: required for initializing physical memory allocator
 use cpu::exceptions::init_exceptions;
 use mmu::{init_mair, init_tcr, init_ttbr0, enable_mmu, init_page_tables};
 use gic::gicv2::gicv2;
@@ -38,10 +38,8 @@ pub fn init_arch() {
     }
 
     // | CHECK | TESTING SEQUENCE --------------------------------
-    unsafe {
         crate::debug::tests::tests();
-        //crate::debug::tests::test_break();
-    }    
+        //unsafe { crate::debug::tests::test_break(); }    
 
     // --- Initializing MMU and page tables --------------------------------
     puts("| INIT. | Initializing MMU...\n");
@@ -68,7 +66,36 @@ pub fn init_arch() {
     }
     puts("\tGIC enabled\n");
 
-    puts("\n==========================================================\n");
+    // | CHECK | linker addresses ---------------------
+    crate::uart_println!("| CHECK | linker addresses...");
+    use boot::linker_symbols::_text_start;
+    use boot::linker_symbols::_text_end;
+    use boot::linker_symbols::_stack_start;
+    use boot::linker_symbols::_stack_top;
+    unsafe {
+        let text_start = &_text_start as *const u8 as u64;
+        let text_end   = &_text_end   as *const u8 as u64;
+        let stack_start = &_stack_start as *const u8 as u64;
+        let stack_top   = &_stack_top   as *const u8 as u64;
+        crate::uart_println!("\t_text_start  = 0x{:016x}", text_start);
+        crate::uart_println!("\t_text_end    = 0x{:016x}", text_end);        
+        crate::uart_println!("\t_stack_start = 0x{:016x}", stack_start);
+        crate::uart_println!("\t_stack_top   = 0x{:016x}", stack_top);
+    }
+
+    // | CHECK | Sending an SGI "this CPU only" ---------------------
+    unsafe { irq::debug_irq::sgi_irq(); }
+
+    // --- Initializing timer -------------------------------------
+    unsafe { crate::arch::aarch64::timer::cntp::cntp::init(); }
+
+    // // Enable timer IRQ in GIC (it is actually a redundancy) ------------------------
+    unsafe { crate::arch::aarch64::gic::gicv2::gicv2::enable_irq(crate::arch::aarch64::timer::cntp::cntp::TIMER_IRQ); }
+
+    // --- Initializing scheduler -------------------------
+    unsafe { crate::scheduler::task::init_tasks(); }
+
+    puts("\n\n==========================================================\n");
 
     puts("\nWOS-AARCH64 Firmware v0.1\n");
     puts("(c) 2026 Ulrich Tan\n\n");
@@ -94,70 +121,7 @@ pub fn init_arch() {
     puts(  "|       Hello from WOS-AARCH64!       |"  );
     puts("\n---------------------------------------\n\n");
 
-    use boot::linker_symbols::_text_start;
-    use boot::linker_symbols::_text_end;
+    // | CHECK | Launching 3 tasks --------------------------------
+    unsafe { crate::scheduler::task::start_first_task_rust(); }
 
-    unsafe {
-        let text_start = &_text_start as *const u8 as u64;
-        let text_end   = &_text_end   as *const u8 as u64;
-
-        crate::uart_println!("_text_start = 0x{:016x}", text_start);
-        crate::uart_println!("_text_end   = 0x{:016x}", text_end);
-    }
-
-    use boot::linker_symbols::_stack_start;
-    use boot::linker_symbols::_stack_top;
-
-    unsafe {
-        let stack_start = &_stack_start as *const u8 as u64;
-        let stack_top   = &_stack_top   as *const u8 as u64;
-
-        crate::uart_println!("_stack_start = 0x{:016x}", stack_start);
-        crate::uart_println!("_stack_top   = 0x{:016x}", stack_top);
-    }
-
-    // | CHECK | Sending an SGI "this CPU only" ---------------------
-    unsafe {
-        irq::debug_irq::sgi_irq();
-    }
-
-    crate::uart_println!("\n");
-
-    // --- Call timer -------------------------------------
-    unsafe { crate::arch::aarch64::timer::cntp::cntp::init(); }
-
-    // --- Enable timer IRQ in GIC ------------------------
-    unsafe { crate::arch::aarch64::gic::gicv2::gicv2::enable_irq(crate::arch::aarch64::timer::cntp::cntp::TIMER_IRQ); }
-
-    // --- Enter kernel main loop -------------------------
-    crate::arch::aarch64::kmain();
-
-}
-
-pub fn kmain() -> ! {
-    use crate::time::tick::tick_now;
-
-    crate::uart_println!("Kernel entering main loop...");
-
-    let mut last = 0;
-
-    loop {
-        unsafe { core::arch::asm!("wfi", options(nostack, preserves_flags)); } //wait for interrupt (wfi)
-
-        let t = tick_now();
-        if t != last && t % 100 == 0 {
-            crate::uart_println!("[tick] {}", t);
-            last = t;
-        }
-
-        let t = crate::time::tick::tick_now();
-        if t % 100 == 0 {   // execute tasks only every 100 IRQs
-            match crate::scheduler::current() {
-                0 => crate::tasks::task0(),
-                1 => crate::tasks::task1(),
-                2 => crate::tasks::task2(),
-                _ => {}
-            }
-        }
-    }
 }

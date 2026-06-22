@@ -67,8 +67,8 @@ pub unsafe fn map_page(virt: u64, phys: u64, attr: PageAttr) {
     // then L1_DEVICE[0] to L2_DEVICE_TABLE
     // then computes L3 index.
 
-    let l0_index = ((virt >> 39) & 0x1FF) as usize;
-    let l1_index = ((virt >> 30) & 0x1FF) as usize;
+    //let l0_index = ((virt >> 39) & 0x1FF) as usize;
+    //let l1_index = ((virt >> 30) & 0x1FF) as usize;
     let l2_index = ((virt >> 21) & 0x1FF) as usize;
     let l3_index = ((virt >> 12) & 0x1FF) as usize;
 

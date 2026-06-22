@@ -123,6 +123,9 @@ kernel/src/arch/
 - Working GICv2 interrupt subsystem (Distributor + CPU interface + CNTP timer + SGI), currently using identity-mapped MMIO (ARM64)
 - RISC‑V trap handling (synchronous exceptions)
 - Early RISC‑V exception pipeline (mtvec, trap.S, mret)
+- Minimal round‑robin scheduler (ARM64)
+- Fully working ARM64 context switch (save/restore x0..x30, SP, ELR, SPSR)
+- Timer‑driven preemption using CNTP + GICv2 PPI
 
 > **Note (ARM64):**  
 > Device MMIO is currently accessed through identity-mapped physical addresses.
@@ -246,6 +249,25 @@ It is a functional minimal kernel, serving as a foundation for:
 
 ARM64 is fully functional; RISC‑V is in early bring‑up.
 
+ARM64 now has a stable preemptive scheduler and interrupt‑driven task switching.
+
+
+---
+
+## 🧵 Scheduler & Context Switching (ARM64)
+
+WOS now includes a fully functional **preemptive round‑robin scheduler** on ARM64.
+
+- context switch implemented in pure AArch64 assembly
+- full register save/restore (x0..x30, SP, ELR, SPSR)
+- IRQ‑driven preemption using CNTP timer (PPI 30)
+- clean separation between:
+  - task initialization (`init_tasks`)
+  - first task bootstrap (`start_first_task`)
+  - IRQ‑driven switching (`irq_entry`)
+
+---
+
 ## 🗺️ Roadmap
 
 ### ARM64
@@ -257,9 +279,12 @@ ARM64 is fully functional; RISC‑V is in early bring‑up.
 - [x] Working GICv2 interrupt subsystem (Distributor + CPU interface + timer PPI + SGI)
 - [x] Timer interrupts (CNTP, PPI 30)
 - [x] SGI delivery (IPI)
+- [x] Minimal scheduler (round‑robin)
+- [x] Full ARM64 context switching (IRQ‑driven)
+- [ ] Per‑task virtual memory (TTBR0 switching)
+- [ ] User space processes
 - [ ] High-half virtual device mapping (UART, GIC, timers) using TTBR1 + DEVICE_BASE
 - [ ] Virtual memory allocator (heap, using L3 pages)
-- [ ] Minimal scheduler
 - [ ] Drivers (UART, timer, virtio)
 - [ ] User space
 - [ ] ELF loader
