@@ -1,5 +1,8 @@
 // src/scheduler/task.rs
 
+// backend ARM64 legacy
+// (replaced by Process + Context)
+
 // -------------------------------------------------------------
 // structure tasks + separate stacks + minimal CPU context
 // -------------------------------------------------------------

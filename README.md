@@ -8,23 +8,7 @@
 ![Status](https://img.shields.io/badge/status-kernel_ready-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
-**WOS** is an experimental operating system written in **Rust**, built **from scratch**, now supporting **ARM64/AArch64** *and* **RISC-V (rv64)** architectures.
-
-The kernel is stable enough for experimentation and educational use, but **not intended for production environments**.
-
-At its current stage, WOS is a **minimal, clean, and educational kernel**, implementing the essential foundations of a modern OS:
-
-- custom ARM64 and RISC-V boot pipeline  
-- EL1 CPU initialization (ARM64)
-- early bring‑up on RISC‑V (stack + Rust entry)
-- full ARM64 MMU setup (MAIR, TCR, TTBR0, SCTLR)
-- hierarchical L0/L1/L2/L3 page tables (ARM64)
-- per‑section kernel mapping
-- UART output  
-- physical page allocator  
-- Rust `no_std` / `no_main` environment  
-
-WOS is **Rust-first**, **multi-architecture**, and designed to be **educational and clean**.
+**WOS** is an experimental operating system written in **Rust**, built **from scratch**, now supporting **ARM64/AArch64** *and* **RISC-V (rv64)** architectures. It is a **minimal, clean, educational kernel**, designed to be understandable, hackable, and a solid foundation for OS research.  
 
 ## Table of Contents
 - [Project Vision](#-project-vision)
@@ -44,63 +28,56 @@ WOS is **Rust-first**, **multi-architecture**, and designed to be **educational 
 
 ## 🎯 Project Vision
 
-WOS is a research‑driven exploration of how operating‑system foundations might evolve in an era where adaptive, learning‑based components become pervasive.
-
-WOS has two complementary goals:
+WOS is a research‑driven exploration of how operating‑system foundations might evolve in an era where adaptive, learning‑based components become pervasive. It has two complementary goals:
 
 ### 1. **A minimal and educational Rust OS (ARM64 + RISC-V)**
 WOS provides a clear, modern, and understandable foundation for learning:
-
 - how to boot ARM64 and RISC-V CPUs    
-- how to write a Rust kernel without a runtime  
-- how to manage physical memory  
-- how to interact with hardware (UART, timers, etc.)
+- how to write a Rust kernel without a runtime (`no_std`, `no_main`)  
 - how to configure the ARM64 MMU
-- how to bring up a minimal RISC‑V kernel
+- how to manage physical memory  
+- how interrupts, traps, and exceptions work
+- how to implement a scheduler and context switching
 
-This makes WOS useful for:
-
+It is ideal for:
 - systems programming students  
 - Rust developers curious about OS internals  
-- people wanting a simple ARM64 or RISC-V kernel  
-- researchers needing a minimal multi-arch environment  
-
-> Status (ARM64): WOS now includes a fully correct ARMv8 MMU with fine‑grained 4 KiB mappings, making it a solid foundation for advanced kernel features such as user space, virtual memory, and process isolation.
-
+- researchers needing a minimal multi-arch environment
+- people wanting a simple ARM64 or RISC-V kernel    
+- hobbyists building their own OS
 
 ### 2. **A future platform for an AI‑native operating system**
 WOS is also the foundation for a broader research direction exploring the idea of an AI‑native OS.
 
-> Note: The AI components are not part of the public codebase. 
+> Note: AI components are not part of the public codebase. 
 
 ---
 
 ## 🏗️ Multi‑Architecture Support
-WOS now supports two architectures:
 
 ### ✔ ARM64 / AArch64
-Fully functional:
 - custom bootloader
 - EL1 initialization
-- MMU + page tables
+- full MMU setup (MAIR, TCR, TTBR0, SCTLR)
+- 4‑level page tables (L0/L1/L2/L3)
 - UART
-- GICv2
-- physical memory allocator
+- GICv2 interrupts
+- CNTP timer
+- physical page allocator
+- preemptive process scheduler (round‑robin)
+- full context switching (x0..x30, SP, ELR, SPSR)
 
-### ✔ RISC‑V (rv64)
-Early bring‑up:
-- custom bootloader (start.S)
+### ✔ RISC‑V (rv64) — Early bring‑up
+- custom bootloader
 - stack setup
-- Rust entry (rust_main)
-- UART “Hello” output
+- Rust entry
+- UART output
+- trap handler (Rust + trap.S)
+- early exception debugging
 - working linker script
 - custom target JSON
-- correct code model (medium)
-- working trap handler (Rust + trap.S)
-- early exception debugging (mepc/mcause/mtval)
 
 Architecture‑specific code lives in:
-
 ```
 kernel/src/arch/
   ├── aarch64/
@@ -110,27 +87,22 @@ kernel/src/arch/
 
 ## ✨ Current Features
 
-- Minimal Rust kernel (`no_std`, `no_main`)
+- Rust kernel (`no_std`, `no_main`)
 - Custom boot code for ARM64 and RISC‑V
 - UART driver (console output)
-- ARM64 exception handling (synchronous exceptions, data aborts, FP/SIMD traps)
-- ARMv8 MMU setup (MAIR, TCR, TTBR0, SCTLR)
-- 4‑level translation tables (L0/L1/L2/L3)
-- Fine‑grained 4 KiB kernel mapping (text/rodata/data/bss/stack)
-- Physical page allocator (4K pages)
-- Debug helpers
-- QEMU‑friendly environment
-- Working GICv2 interrupt subsystem (Distributor + CPU interface + CNTP timer + SGI), currently using identity-mapped MMIO (ARM64)
-- RISC‑V trap handling (synchronous exceptions)
-- Early RISC‑V exception pipeline (mtvec, trap.S, mret)
-- Minimal round‑robin scheduler (ARM64)
-- Fully working ARM64 context switch (save/restore x0..x30, SP, ELR, SPSR)
-- Timer‑driven preemption using CNTP + GICv2 PPI
+- [ARM64] exception handling (synchronous exceptions, data aborts, FP/SIMD traps)
+- [ARM64] MMU + page tables
+- [ARM64] Physical page allocator (4K pages)
+- [ARM64] Identity‑mapped MMIO (UART, GIC, timer)
+- [ARM64] GICv2 interrupt subsystem
+- [ARM64] CNTP timer interrupts
+- [ARM64] Process‑based scheduler (round‑robin)
+- [ARM64] Pure ASM context switching
+- [ARM64] IRQ‑driven preemption
+- [RISC‑V] trap handling
 
 > **Note (ARM64):**  
-> Device MMIO is currently accessed through identity-mapped physical addresses.
-> This simplifies early bring-up of interrupts and timers.  
-> A full high-half kernel layout (KERNEL_BASE / DEVICE_BASE in the 0xFFFF_… range) will be enabled once IRQs, timers, and the scheduler are stable.
+> Device MMIO is currently accessed through identity-mapped physical addresses. This simplifies early bring-up of interrupts and timers. A full high-half kernel layout (KERNEL_BASE / DEVICE_BASE in the 0xFFFF_… range) will be enabled now that IRQs, timers, and the scheduler are stable.
 
 ---
 
@@ -166,7 +138,7 @@ On Debian/Ubuntu:
 sudo apt install clang llvm qemu-system-arm qemu-system-misc
 ```
 
-On macOS (M chips), using `UTM` is recommended for convenience and stability. WOS runs perfectly inside a `UTM` ARM64 virtual machine.
+On Apple Silicon, use `UTM` for stable ARM64 virtualization.
 
 ---
 
@@ -206,7 +178,7 @@ qemu-system-aarch64 \
     -nographic
 ```
 
-You may also build an image,
+Or build an image,
 ```bash
 rust-objcopy --strip-all -O binary target/aarch64-wos/debug/kernel kernel8.img
 ```
@@ -237,34 +209,44 @@ qemu-system-riscv64 \
 
 ---
 
-## 📌 Current Status
+## 🧵 Scheduler & Context Switching (ARM64)
 
-WOS is not yet a full operating system.
-It is a functional minimal kernel, serving as a foundation for:
-- advanced memory management
-- interrupts and timers
-- a basic scheduler
-- a user space
-- an AI‑native runtime
+WOS now includes a **stable, process‑based preemptive scheduler** on ARM64.
 
-ARM64 is fully functional; RISC‑V is in early bring‑up.
+### ✔ Architecture
+- Process Control Block (PCB) stored in `PROCS[]`
+- CPU context stored separately in `CTX[]` (fixed 272‑byte layout)
+- Kernel stack per process
+- Pure AArch64 context switch (save/restore x0..x30, SP, ELR, SPSR)
+- IRQ‑driven preemption using CNTP timer (PPI 30)
+- Round‑robin scheduling
 
-ARM64 now has a stable preemptive scheduler and interrupt‑driven task switching.
+### ✔ IRQ pipeline
+- `irq_entry` (ASM) saves the interrupted process context
+- Rust scheduler selects the next process
+- `irq_entry` restores the next process context
+- `eret` jumps directly into the new process
 
+### ✔ Why this design
+Separating the PCB from the CPU context ensures:
+- stable stride for ASM context switching
+- clean Rust‑side process management
+- extensibility toward user space, MMU switching, and isolation
+
+> This architecture matches how other kernels (Linux, seL4, FreeRTOS) structure process management.
 
 ---
 
-## 🧵 Scheduler & Context Switching (ARM64)
+## 📌 Current Status
 
-WOS now includes a fully functional **preemptive round‑robin scheduler** on ARM64.
+WOS is a functional minimal kernel, ready for:
+- virtual memory per process
+- user space
+- ELF loader
+- drivers
+- advanced scheduling
 
-- context switch implemented in pure AArch64 assembly
-- full register save/restore (x0..x30, SP, ELR, SPSR)
-- IRQ‑driven preemption using CNTP timer (PPI 30)
-- clean separation between:
-  - task initialization (`init_tasks`)
-  - first task bootstrap (`start_first_task`)
-  - IRQ‑driven switching (`irq_entry`)
+ARM64 is stable; RISC‑V is in early bring‑up.
 
 ---
 
@@ -276,32 +258,25 @@ WOS now includes a fully functional **preemptive round‑robin scheduler** on AR
 - [x] UART output
 - [x] MMU + page tables
 - [x] Physical page allocator
-- [x] Working GICv2 interrupt subsystem (Distributor + CPU interface + timer PPI + SGI)
+- [x] GICv2 interrupt subsystem (Distributor + CPU interface + timer PPI + SGI)
 - [x] Timer interrupts (CNTP, PPI 30)
 - [x] SGI delivery (IPI)
-- [x] Minimal scheduler (round‑robin)
-- [x] Full ARM64 context switching (IRQ‑driven)
-- [ ] Per‑task virtual memory (TTBR0 switching)
-- [ ] User space processes
-- [ ] High-half virtual device mapping (UART, GIC, timers) using TTBR1 + DEVICE_BASE
-- [ ] Virtual memory allocator (heap, using L3 pages)
+- [x] Process scheduler (round‑robin)
+- [x] Full context switching
+- [ ] Per‑process virtual memory (TTBR0 switching)
+- [ ] User space (EL0)
+- [ ] High-half kernel mapping (TTBR1)
+- [ ] Heap allocator
 - [ ] Drivers (UART, timer, virtio)
-- [ ] User space
 - [ ] ELF loader
 
 ### RISC‑V
 
 - [x] Boot + Rust entry
-- [x] UART “Hello”
-- [x] Working linker script
-- [x] Custom target JSON
+- [x] UART
 - [x] Trap handler (mstatus, mtvec, mepc, mcause, mtval)
-- [x] Working synchronous exception handling (ecall, illegal instruction)
 - [ ] Interrupt handling (timer + external)
-- [ ] Sv39 MMU (paging)
-- [ ] Hart management
-- [ ] Device tree parsing
-- [ ] UART + timer drivers
+- [ ] Sv39 MMU
 - [ ] Virtual memory
 - [ ] Scheduler
 
@@ -309,17 +284,15 @@ WOS now includes a fully functional **preemptive round‑robin scheduler** on AR
 
 ## 🤝 Contributing
 Contributions are welcome — especially in the areas of:
-- ARM64 architecture & low‑level bring‑up
+- ARM64 bring‑up
 - RISC‑V bring‑up
-- Rust no_std development
-- memory management
-- exception handling & timers
-- device drivers (UART, timer, virtio)
-- documentation & educational material
+- Rust `no_std`
+- Memory management
+- Exception handling
+- Drivers
+- Documentation
 
-Before contributing, please keep in mind:
-
-### ✔️ Kernel contributions must follow the MIT license
+### ✔️ Kernel contributions follow MIT license
 All code submitted to this repository will be licensed under the MIT License, consistent with the rest of the kernel.
 
 ### ✔️ AI‑native components are not open to contribution
@@ -332,9 +305,9 @@ If you are interested in the research direction or want to discuss ideas, feel f
 ### ✔️ Code style & expectations
 - Rust nightly
 - `no_std`, `no_main`
-- minimal dependencies
-- clear, well‑commented low‑level code
-- small, focused pull requests
+- Minimal dependencies
+- Clear, well‑commented low‑level code
+- Small, focused pull requests
 
 ### ✔️ How to contribute
 1. Fork the repository

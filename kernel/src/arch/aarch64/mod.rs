@@ -44,12 +44,18 @@ pub fn init_arch() {
     // --- Initializing MMU and page tables --------------------------------
     puts("| INIT. | Initializing MMU...\n");
     unsafe {
+        puts("\tinit mair...");
         init_mair();                // Initialize MAIR (Memory Attribute Indirection Register) to set up memory attributes
+        puts("\tinit tcr...");
         init_tcr();                 // Initialize TCR (Translation Control Register) to set up the virtual address space size and granule size
+        puts("\tinit page_tables...");
         init_page_tables();
+        puts("\tinit ttbr0...");
         init_ttbr0();
+        puts("\tenable mmu...");
         enable_mmu();
         core::arch::asm!("isb");    // Ensure that all changes to the MMU configuration are visible before we continue
+        puts("\tinit physical allocation...");
         init_phys_alloc(&_kernel_end as *const u8 as u64);
     }
     puts("\tMMU enabled\n");
@@ -91,10 +97,7 @@ pub fn init_arch() {
 
     // // Enable timer IRQ in GIC (it is actually a redundancy) ------------------------
     unsafe { crate::arch::aarch64::gic::gicv2::gicv2::enable_irq(crate::arch::aarch64::timer::cntp::cntp::TIMER_IRQ); }
-
-    // --- Initializing scheduler -------------------------
-    unsafe { crate::scheduler::task::init_tasks(); }
-
+    
     puts("\n\n==========================================================\n");
 
     puts("\nWOS-AARCH64 Firmware v0.1\n");
@@ -121,7 +124,8 @@ pub fn init_arch() {
     puts(  "|       Hello from WOS-AARCH64!       |"  );
     puts("\n---------------------------------------\n\n");
 
-    // | CHECK | Launching 3 tasks --------------------------------
-    unsafe { crate::scheduler::task::start_first_task_rust(); }
+    // | CHECK | Init and launch 3 tasks --------------------------------
+    unsafe { crate::scheduler::process::init_processes(); }
+    unsafe { crate::scheduler::process::start_first_proc_rust(); }
 
 }

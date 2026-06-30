@@ -51,6 +51,7 @@ SECTIONS
 
     /* Kernel global bounds */
     _kernel_start = _text_start;
+    /*_kernel_end = _stack_top;*/
     _kernel_end   = _bss_end;
 
 }

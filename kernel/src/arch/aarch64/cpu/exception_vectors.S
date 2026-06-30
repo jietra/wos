@@ -26,7 +26,6 @@ exception_vectors:              // Base vectors table for EL1
     .balign 0x80
 
     // -- 06. 0x280: IRQ from current EL with SPx
-    //b irq_current_spx           // <----- Interrupts ----- //
     b irq_entry
     .balign 0x80
 
@@ -101,39 +100,6 @@ sync_current_spx:
     bl sync_current_spx_rust
     eret
 
-.global irq_current_spx             // <----- Interrupts ----- //
-irq_current_spx:
-    // Store context (e.g. x0-x17 + lr)
-    sub     sp, sp, #(18 * 8)
-    stp     x0,  x1,  [sp, #(0 * 16)]
-    stp     x2,  x3,  [sp, #(1 * 16)]
-    stp     x4,  x5,  [sp, #(2 * 16)]
-    stp     x6,  x7,  [sp, #(3 * 16)]
-    stp     x8,  x9,  [sp, #(4 * 16)]
-    stp     x10, x11, [sp, #(5 * 16)]
-    stp     x12, x13, [sp, #(6 * 16)]
-    stp     x14, x15, [sp, #(7 * 16)]
-    stp     x16, x17, [sp, #(8 * 16)]
-    str     x30,      [sp, #(9 * 16)]   // LR
-
-    //bl irq_handler_rust
-    bl irq_current_spx_rust
-
-    // Restore context
-    ldp     x0,  x1,  [sp, #(0 * 16)]
-    ldp     x2,  x3,  [sp, #(1 * 16)]
-    ldp     x4,  x5,  [sp, #(2 * 16)]
-    ldp     x6,  x7,  [sp, #(3 * 16)]
-    ldp     x8,  x9,  [sp, #(4 * 16)]
-    ldp     x10, x11, [sp, #(5 * 16)]
-    ldp     x12, x13, [sp, #(6 * 16)]
-    ldp     x14, x15, [sp, #(7 * 16)]
-    ldp     x16, x17, [sp, #(8 * 16)]
-    ldr     x30,      [sp, #(9 * 16)]
-    add     sp, sp, #(18 * 8)
-
-    eret
-
 .global fiq_current_spx
 fiq_current_spx:
     bl fiq_current_spx_rust
@@ -192,18 +158,18 @@ serr_lower_32:
 
 .global irq_entry
 irq_entry:
-    // 1. Load CURRENT
-    adrp    x9, CURRENT
-    ldr     x10, [x9, :lo12:CURRENT]      // x10 = current
+    // 1. Load CURRENT_PID
+    adrp    x9, CURRENT_PID
+    ldr     x10, [x9, :lo12:CURRENT_PID]      // x10 = current
 
-    // 2. Compute &TASKS[current].ctx
-    adrp    x11, TASKS
-    add     x11, x11, :lo12:TASKS         // x11 = &TASKS[0]
+    // 2. Compute ctx
+    adrp    x11, CTX
+    add     x11, x11, :lo12:CTX
 
-    mov     x12, x10
+    mov     x12, x10                      // pid
     lsl     x12, x12, #8                  // *256
-    add     x12, x12, x10, lsl #4         // + *16 = *272 (sizeof each Task in TASKS)
-    add     x11, x11, x12                 // x11 = &TASKS[current].ctx
+    add     x12, x12, x10, lsl #4         // + *16 = *272 (sizeof each context in CTX)
+    add     x11, x11, x12                 // x11 = &CTX[pid]
 
     // 3. Save Task context in ctx (x11 = base)
 
@@ -245,22 +211,23 @@ irq_entry:
     mrs x0, spsr_el1
     str x0, [x11,#264]
 
-    // 4. Call scheduler : next = irq_handle_and_schedule(current)
+    // 4. Call Rust scheduler : next = irq_handle_and_schedule(current)
     mov     x0, x10                       // current
-    bl      irq_handle_and_schedule
+    bl      irq_handle_and_schedule       // -> next (x0)
     mov     x10, x0                       // next
 
-    // 5. CURRENT = next
-    adrp    x9, CURRENT
-    str     x10, [x9, :lo12:CURRENT]
+    // 5. CURRENT_PID = next
+    adrp    x9, CURRENT_PID
+    str     x10, [x9, :lo12:CURRENT_PID]
 
-    // 6. &TASKS[next].ctx
-    adrp    x11, TASKS
-    add     x11, x11, :lo12:TASKS
+    // 6. &CTX[next]
+    adrp    x11, CTX
+    add     x11, x11, :lo12:CTX
+    // + offset for next
     mov     x12, x10
     lsl     x12, x12, #8
     add     x12, x12, x10, lsl #4
-    add     x11, x11, x12                 // x11 = &TASKS[next].ctx
+    add     x11, x11, x12                 // x11 = &CTX[next]
 
     // 7. Restore context from ctx (x11 = base)
 
@@ -304,19 +271,18 @@ irq_entry:
 
     eret
 
-.global start_first_task
-start_first_task:
-    // x0 = &TASKS[0].ctx
+.global start_first_proc
+start_first_proc:
+    // 1. CURRENT_PID = 0
+    adrp    x9, CURRENT_PID
+    mov     x10, #0
+    str     x10, [x9, :lo12:CURRENT_PID]
 
-    // Load &TASKS[0].ctx
-    adrp    x11, TASKS
-    add     x11, x11, :lo12:TASKS   // x11 = &TASKS[0]
-    mov     x0, x11                 // x0 = &TASKS[0].ctx (ctx at the beginning)
+    // 2. base = &CTX[0]
+    adrp    x11, CTX
+    add     x11, x11, :lo12:CTX      // x11 = &CTX[0]
 
-    // --- same code as the restore part in irq_entry ---
-
-    // base = x0
-    mov x11, x0
+    // 3. restore context
 
     // x1..x7
     ldp x1, x2, [x11, #8]

@@ -57,10 +57,11 @@ extern "C" fn sync_current_spx_rust() {
     loop {} // Otherwise, eret might return to same instruction and cause infinite exceptions
 }
 
-#[no_mangle]
-extern "C" fn irq_current_spx_rust() { // bypassed by scheduler
+// bypassed by scheduler:
+/*#[no_mangle]
+extern "C" fn irq_current_spx_rust() {
     puts("[IRQ] current EL, SPx\n");
-}
+}*/
 
 #[no_mangle]
 extern "C" fn fiq_current_spx_rust() {

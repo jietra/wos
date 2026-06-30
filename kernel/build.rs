@@ -16,6 +16,7 @@ fn main() {
         cc::Build::new()
             .file("src/arch/aarch64/boot/start.S")
             .file("src/arch/aarch64/cpu/exception_vectors.S")
+            .file("src/arch/aarch64/cpu/switch.S")
             .compiler("clang")
             .flag("--target=aarch64-unknown-elf")
             .compile("aarch64_objs");
