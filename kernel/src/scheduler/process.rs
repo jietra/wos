@@ -5,6 +5,9 @@ use crate::scheduler::Context;
 #[cfg(target_arch = "aarch64")]
 const DEFAULT_PSR: u64 = 0x5;
 
+#[cfg(target_arch = "riscv64")]
+const DEFAULT_PSR: u64 = 0;
+
 // ---------------------------------------------------------------------------
 // Global parameters and variable
 // ---------------------------------------------------------------------------
