@@ -13,7 +13,15 @@ use crate::drivers::uart::puts;
 use crate::memory::phys::init_phys_alloc;
 use boot::linker_symbols::_kernel_end;      // defined in linker script: required for initializing physical memory allocator
 use cpu::exceptions::init_exceptions;
-use mmu::{init_mair, init_tcr, init_ttbr0, enable_mmu, init_page_tables};
+use mmu::{
+    init_mair, 
+    init_tcr, 
+    init_ttbr0, 
+    init_ttbr1, 
+    enable_mmu, 
+    init_page_tables, 
+    set_vbar_in_va
+};
 use gic::gicv2::gicv2;
 
 pub fn init_arch() {
@@ -38,27 +46,93 @@ pub fn init_arch() {
     }
 
     // | CHECK | TESTING SEQUENCE --------------------------------
-        crate::debug::tests::tests();
-        //unsafe { crate::debug::tests::test_break(); }    
+    crate::debug::tests::tests();
+    //unsafe { crate::debug::tests::test_break(); }    
 
     // --- Initializing MMU and page tables --------------------------------
     puts("| INIT. | Initializing MMU...\n");
     unsafe {
-        puts("\tinit mair...");
+        /// For debugging purposes
+        // crate::arch::mmu::tables::save_exc_pa();
+
+        puts("\tinit MAIR...\n");
         init_mair();                // Initialize MAIR (Memory Attribute Indirection Register) to set up memory attributes
-        puts("\tinit tcr...");
+        
+        puts("\tinit TCR...\n");
         init_tcr();                 // Initialize TCR (Translation Control Register) to set up the virtual address space size and granule size
-        puts("\tinit page_tables...");
+        
+        // | CHECK | linker addresses ---------------------
+        crate::uart_println!("\tcheck linker addresses pre-MMU...");
+        use boot::linker_symbols::_text_start;
+        use boot::linker_symbols::_text_end;
+        use boot::linker_symbols::_stack_start;
+        use boot::linker_symbols::_stack_top;
+        use boot::linker_symbols::_exceptions_start;
+        use boot::linker_symbols::_exceptions_end;
+        unsafe {
+            let text_start = &_text_start       as *const u8 as u64;
+            let text_end   = &_text_end         as *const u8 as u64;
+            let stack_start= &_stack_start      as *const u8 as u64;
+            let stack_top  = &_stack_top        as *const u8 as u64;
+            let exc_start  = &_exceptions_start as *const u8 as u64;
+            let exc_end    = &_exceptions_end   as *const u8 as u64;
+            crate::uart_println!("\t\t_text_start  = 0x{:016x}", text_start);
+            crate::uart_println!("\t\t_text_end    = 0x{:016x}", text_end);        
+            crate::uart_println!("\t\t_stack_start = 0x{:016x}", stack_start);
+            crate::uart_println!("\t\t_stack_top   = 0x{:016x}", stack_top);
+            crate::uart_println!("\t\t_exc_start   = 0x{:016x}", exc_start);
+            crate::uart_println!("\t\t_exc_end     = 0x{:016x}", exc_end);
+        }
+
+        puts("\tinit page_tables...\n");
         init_page_tables();
-        puts("\tinit ttbr0...");
+
+        puts("\tinit TTBR0...\n"); //for kernel which is still in low half
         init_ttbr0();
-        puts("\tenable mmu...");
+        
+        puts("\tinit TTBR1...\n");
+        init_ttbr1();
+
+        puts("\tenable MMU...\n");
         enable_mmu();
         core::arch::asm!("isb");    // Ensure that all changes to the MMU configuration are visible before we continue
-        puts("\tinit physical allocation...");
+
+        crate::uart_println!("\t---\n\tsetting VBAR_EL1 to virtual address...");
+        set_vbar_in_va();           // set VBAR in virtual adress (since MMU now activated)
+        
         init_phys_alloc(&_kernel_end as *const u8 as u64);
     }
-    puts("\tMMU enabled\n");
+
+    /*
+    /// Fallback in case of pb with exception vector address (debugging purposes)
+    unsafe {
+        use crate::arch::mmu::tables::phys_to_kernel_virt;
+        //let exc_pa = crate::arch::boot::linker_symbols::_exceptions_start as u64;
+        let exc_va = phys_to_kernel_virt(crate::arch::mmu::tables::EXC_PA);
+        core::arch::asm!("msr VBAR_EL1, {}", in(reg) exc_va);
+        let mut vbar: u64;
+        core::arch::asm!("mrs {0}, VBAR_EL1", out(reg) vbar);
+        crate::uart_println!("\tVBAR_EL1 after  set vbar in va = 0x", vbar);
+        crate::uart_println!("exc_va = ", exc_va);
+        crate::uart_println!("exc_pa = ", crate::arch::mmu::tables::EXC_PA);
+        crate::uart_println!("---");
+    }
+    */
+
+    /*
+    /// DAIF checks (debugging purposes)
+    unsafe {
+        let mut daif: u64;
+        core::arch::asm!("mrs {0}, DAIF", out(reg) daif);
+        crate::uart_println!("DAIF before = 0x{:016x}", daif);
+
+        // Clear le bit I (IRQ mask)
+        core::arch::asm!("msr DAIFClr, #0b001");
+
+        core::arch::asm!("mrs {0}, DAIF", out(reg) daif);
+        crate::uart_println!("DAIF after  = 0x{:016x}", daif);
+    }
+    */
 
     // | CHECK | Testing memory access after MMU enabled --------------------------------
     unsafe { crate::debug::memory::test_memory(); }
@@ -67,27 +141,23 @@ pub fn init_arch() {
     // --- Initializing Gicv2 -----------------------------
     puts("| INIT. | Initializing GIC v2...\n");
     unsafe { 
+        use crate::arch::gic::gicv2::gicv2::GICD_PADDR;
+        let d_ctlr_pa = core::ptr::read_volatile((GICD_PADDR + 0x000) as *const u32);
+        
         gicv2::init();
+        
+        crate::uart_println!("\tGIC dump:");
         gicv2::dump_gic();
+        
+        crate::uart_println!("\t---");
+        use crate::arch::gic::gicv2::gicv2::GICD_VADDR;
+        let d_ctlr_va = crate::arch::gic::gicv2::gicv2::mmio_read32(GICD_VADDR + 0x000);
+        crate::uart_println!("\tGICD_CTLR PA  = 0x{:08x}", d_ctlr_pa);
+        crate::uart_println!("\tGICD_CTLR VA  = 0x{:08x}", d_ctlr_va);
+        let typer_pa = core::ptr::read_volatile((GICD_PADDR + 0x004) as *const u32);
+        crate::uart_println!("\tGICD_TYPER PA = 0x{:08x}", typer_pa);
     }
     puts("\tGIC enabled\n");
-
-    // | CHECK | linker addresses ---------------------
-    crate::uart_println!("| CHECK | linker addresses...");
-    use boot::linker_symbols::_text_start;
-    use boot::linker_symbols::_text_end;
-    use boot::linker_symbols::_stack_start;
-    use boot::linker_symbols::_stack_top;
-    unsafe {
-        let text_start = &_text_start as *const u8 as u64;
-        let text_end   = &_text_end   as *const u8 as u64;
-        let stack_start = &_stack_start as *const u8 as u64;
-        let stack_top   = &_stack_top   as *const u8 as u64;
-        crate::uart_println!("\t_text_start  = 0x{:016x}", text_start);
-        crate::uart_println!("\t_text_end    = 0x{:016x}", text_end);        
-        crate::uart_println!("\t_stack_start = 0x{:016x}", stack_start);
-        crate::uart_println!("\t_stack_top   = 0x{:016x}", stack_top);
-    }
 
     // | CHECK | Sending an SGI "this CPU only" ---------------------
     unsafe { irq::debug_irq::sgi_irq(); }

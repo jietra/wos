@@ -1,7 +1,29 @@
-// arch/aarch64/mmu/tables.rs
+// src/arch/aarch64/mmu/tables.rs
 
 use crate::arch::aarch64::boot::linker_symbols as ls;
-use crate::memory::memory_layout::layout::DEVICE_BASE;
+use crate::memory::memory_layout::layout::{DEVICE_BASE, KERNEL_BASE};
+
+/*
+/// Fallback in case of pb with exception vector address: Save _exceptions_start before MMU
+pub static mut EXC_PA: u64 = 0;
+pub fn save_exc_pa() {
+    unsafe { EXC_PA = &ls::_exceptions_start as *const u8 as u64; }
+}
+*/
+
+// -----------------------------------------------------------------------------
+// For high half kernel
+// -----------------------------------------------------------------------------
+#[repr(align(4096))]
+pub struct Table([u64; 512]);
+
+#[no_mangle]
+pub static mut L1_KERNEL_HI: Table = Table([0; 512]);
+#[no_mangle]
+pub static mut L2_KERNEL_HI: Table = Table([0; 512]);
+#[no_mangle]
+pub static mut L3_KERNEL_HI: Table = Table([0; 512]);
+
 
 // -----------------------------------------------------------------------------
 // Minimal page tables
@@ -94,52 +116,58 @@ pub unsafe fn map_page(virt: u64, phys: u64, attr: PageAttr) {
 // -----------------------------------------------------------------------------
 // Kernel mapping
 // -----------------------------------------------------------------------------
-pub unsafe fn map_kernel_l3() {
-    let l1_1_base = 1u64 << 30;     // 0x4000_0000
 
+pub fn kernel_start_phys() -> u64 {
+    unsafe { &ls::_kernel_start as *const u8 as u64 }
+}
+
+pub fn phys_to_kernel_virt(pa: u64) -> u64 {
+    let ks = kernel_start_phys();
+    // temporary: avoid underflow
+    if pa < ks {
+        // log / println / return pa (debug)
+        return pa;
+    }
+    KERNEL_BASE as u64 + (pa - ks)
+}
+
+pub unsafe fn map_kernel_l3() {
     let kernel_start = &ls::_kernel_start as *const u8 as u64;
     let kernel_end   = &ls::_stack_top    as *const u8 as u64;
 
-    let exc_start    = &ls::_exceptions_start as *const u8 as u64;
-    let exc_end      = &ls::_exceptions_end   as *const u8 as u64;
-
     let text_start   = &ls::_text_start   as *const u8 as u64;
     let text_end     = &ls::_text_end     as *const u8 as u64;
+    let exc_start    = &ls::_exceptions_start as *const u8 as u64;
+    let exc_end      = &ls::_exceptions_end   as *const u8 as u64;
     let rodata_start = &ls::_rodata_start as *const u8 as u64;
     let rodata_end   = &ls::_rodata_end   as *const u8 as u64;
 
-    // Suppose the whole kernel fits in 1-2 GiB
-    // Use only one L2 entry
-    let l2_index       = (((kernel_start - l1_1_base) >> 21) & 0x1FF) as usize;
-    let l2_region_base = l1_1_base + ((l2_index as u64) << 21);
+    let mut phys = kernel_start;
+    while phys < kernel_end {
+        let va = phys_to_kernel_virt(phys);
 
-    // L2 -> L3
-    L2_TABLE.0[l2_index] = (&raw const L3_KERNEL_TABLE as *const _ as u64) | 0b11;
-
-    // Fills the 512 4K pages of the 2 MiB bloc
-    for i in 0..512 {
-        let va = l2_region_base + ((i as u64) << 12);
-        let phys = va;              // identity mapping
-
-        // Map only what's in [kernel_start, kernel_end)
-        if va < kernel_start || va >= kernel_end {
-            L3_KERNEL_TABLE.0[i] = 0;
-            continue;
-        }
-        
         let (attr_index, ap, exec) =
-            if va >= text_start && va < text_end {
-                (2, 0b10, true)         // .text : Normal WB, RO, executable
-            } else if va >= exc_start && va < exc_end {
-                (2, 0b10, true)         // .exceptions : RO + exec
-            } else if va >= rodata_start && va < rodata_end {
-                (2, 0b10, false)        // .rodata : Normal WB, RO, XN
+            if phys >= text_start && phys < text_end {
+                (2, 0b10, true)
+            } else if phys >= exc_start && phys < exc_end {
+                (2, 0b10, true)
+            } else if phys >= rodata_start && phys < rodata_end {
+                (2, 0b10, false)
             } else {
-                (2, 0b00, false)        // the rest: RW, XN
+                (2, 0b00, false)
             };
 
-        L3_KERNEL_TABLE.0[i] = l3_page_entry(phys, attr_index, exec, ap);
+        let l3_index = ((va >> 12) & 0x1FF) as usize;
+        L3_KERNEL_HI.0[l3_index] = l3_page_entry(phys, attr_index, exec, ap);
+
+        phys += 0x1000;
     }
+
+    let va_start = phys_to_kernel_virt(kernel_start);
+    let va_end   = phys_to_kernel_virt(kernel_end - 1);
+
+    let l2_index = ((va_start >> 21) & 0x1FF) as usize;
+    L2_KERNEL_HI.0[l2_index] = (&raw const L3_KERNEL_HI as *const _ as u64) | 0b11;
 }
 
 // -----------------------------------------------------------------------------
@@ -153,9 +181,19 @@ pub unsafe fn init_page_tables() {
     L1_TABLE.0[1] = (&raw const L2_TABLE as *const _ as u64) | 0b11;    // L1[1]: 1–2 Go -> KERNEL
 
     // High-half devices: L0[511] → L1_DEVICE
-    L0_TABLE.0[511] = (&raw const L1_DEVICE_TABLE as *const _ as u64) | 0b11;
+    //L0_TABLE.0[511] = (&raw const L1_DEVICE_TABLE as *const _ as u64) | 0b11;
+    let dev_l0_index = ((DEVICE_BASE as u64 >> 39) & 0x1FF) as usize;   // = 0x1FA
+    L0_TABLE.0[dev_l0_index] = (&raw const L1_DEVICE_TABLE as *const _ as u64) | 0b11;
+
     L1_DEVICE_TABLE.0[0] = (&raw const L2_DEVICE_TABLE as *const _ as u64) | 0b11;
 
+    let k_l0_index = ((KERNEL_BASE as u64 >> 39) & 0x1FF) as usize;
+    unsafe {
+        L0_TABLE.0[k_l0_index] = (&raw const L1_KERNEL_HI as *const _ as u64) | 0b11;
+        L1_KERNEL_HI.0[0]      = (&raw const L2_KERNEL_HI as *const _ as u64) | 0b11;
+    }
+
+    /// GIC mapping: for now we keep both identity & high half mapping
     // High-half mapping
     // Map GICD
     map_device(
@@ -169,8 +207,51 @@ pub unsafe fn init_page_tables() {
         DEVICE_BASE as u64 + 0x0001_0000,
         0x10000,
     );
+    
+    // identity map gicd/gicc
+    map_identity_page(0x0800_0000); // GICD
+    map_identity_page(0x0801_0000); // GICC
+
+    /// UART mapping: fully in high half
+    // Identity mapping for UART (BEFORE MMU)
+    //map_identity_page(0x0900_0000);       // no longer needed since uart va activated in mmu init
+
+    // High-half mapping for UART (AFTER MMU)
+    map_device(
+        0x0900_0000,                        // phys
+        DEVICE_BASE as u64 + 0x0020_0000,   // virt
+        0x10000,
+    );
+
+    /// KERNEL: for now we keep both identity mapping & high half
+    // (identiy mapping of the kernel is indeed necessary during MMU activation)
+    // Identity map of kernel in low-half
+    let kernel_start = kernel_start_phys();
+    let kernel_end   = &ls::_stack_top as *const u8 as u64;
+
+    let mut phys = kernel_start;
+    while phys < kernel_end {
+        map_identity_page_kernel(phys);
+        phys += 0x1000;
+    }
 
     map_kernel_l3();
+
+    crate::uart_println!("\t\tDEVICE BASE = ", DEVICE_BASE as u64);
+    
+    let va = DEVICE_BASE as u64;
+    let l0 = ((va >> 39) & 0x1FF) as usize;
+    let l1 = ((va >> 30) & 0x1FF) as usize;
+    let l2 = ((va >> 21) & 0x1FF) as usize;
+    let l3 = ((va >> 12) & 0x1FF) as usize;
+
+    crate::uart_println!("\t\tDEVICE_BASE indices: L0={}", l0);
+    crate::uart_println!("\t\tDEVICE_BASE indices: L1={}", l1);
+    crate::uart_println!("\t\tDEVICE_BASE indices: L2={}", l2);
+    crate::uart_println!("\t\tDEVICE_BASE indices: L3={}", l3);
+    crate::uart_println!("\t\tL0[l0]       = 0x{:016x}", L0_TABLE.0[l0]);
+    crate::uart_println!("\t\tL1_DEVICE[0] = 0x{:016x}", L1_DEVICE_TABLE.0[0]);
+    crate::uart_println!("\t\tL2_DEVICE[0] = 0x{:016x}", L2_DEVICE_TABLE.0[0]);
 }
 
 pub unsafe fn map_device(phys: u64, virt: u64, size: u64) {
@@ -184,4 +265,49 @@ pub unsafe fn map_device(phys: u64, virt: u64, size: u64) {
         );
         offset += 0x1000;
     }
+}
+
+pub unsafe fn map_identity_page(phys: u64) {
+    let va = phys;
+
+    let l0_index = ((va >> 39) & 0x1FF) as usize;
+    let l1_index = ((va >> 30) & 0x1FF) as usize;
+    let l2_index = ((va >> 21) & 0x1FF) as usize;
+    let l3_index = ((va >> 12) & 0x1FF) as usize;
+
+    if L0_TABLE.0[l0_index] == 0 {
+        L0_TABLE.0[l0_index] = (&raw const L1_TABLE as *const _ as u64) | 0b11;
+    }
+    if L1_TABLE.0[l1_index] == 0 {
+        L1_TABLE.0[l1_index] = (&raw const L2_TABLE as *const _ as u64) | 0b11;
+    }
+    if L2_TABLE.0[l2_index] == 0 {
+        L2_TABLE.0[l2_index] = (&raw const L3_KERNEL_TABLE as *const _ as u64) | 0b11;
+    }
+
+    L3_KERNEL_TABLE.0[l3_index] =
+        l3_page_entry(phys, PageAttr::Device as u64, false, 0b00);
+}
+
+pub unsafe fn map_identity_page_kernel(phys: u64) {
+    let va = phys;
+
+    let l0_index = ((va >> 39) & 0x1FF) as usize;
+    let l1_index = ((va >> 30) & 0x1FF) as usize;
+    let l2_index = ((va >> 21) & 0x1FF) as usize;
+    let l3_index = ((va >> 12) & 0x1FF) as usize;
+
+    if L0_TABLE.0[l0_index] == 0 {
+        L0_TABLE.0[l0_index] = (&raw const L1_TABLE as *const _ as u64) | 0b11;
+    }
+    if L1_TABLE.0[l1_index] == 0 {
+        L1_TABLE.0[l1_index] = (&raw const L2_TABLE as *const _ as u64) | 0b11;
+    }
+    if L2_TABLE.0[l2_index] == 0 {
+        L2_TABLE.0[l2_index] = (&raw const L3_KERNEL_TABLE as *const _ as u64) | 0b11;
+    }
+
+    // Normal WB, RW, executable
+    L3_KERNEL_TABLE.0[l3_index] =
+        l3_page_entry(phys, PageAttr::Normal as u64, true, 0b00);
 }

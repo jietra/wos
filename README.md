@@ -93,7 +93,9 @@ kernel/src/arch/
 - [ARM64] exception handling (synchronous exceptions, data aborts, FP/SIMD traps)
 - [ARM64] MMU + page tables
 - [ARM64] Physical page allocator (4K pages)
-- [ARM64] Identity‑mapped MMIO (UART, GIC, timer)
+- [ARM64] High‑half kernel (KERNEL_BASE = 0xFFFF_FF00_0000_0000)
+- [ARM64] High‑half UART MMIO (DEVICE_BASE = 0xFFFF_FD00_0000_0000)
+- [ARM64] GICv2 still identity‑mapped (temporary)
 - [ARM64] GICv2 interrupt subsystem
 - [ARM64] CNTP timer interrupts
 - [ARM64] Process‑based scheduler (round‑robin)
@@ -101,8 +103,12 @@ kernel/src/arch/
 - [ARM64] IRQ‑driven preemption
 - [RISC‑V] trap handling
 
-> **Note (ARM64):**  
-> Device MMIO is currently accessed through identity-mapped physical addresses. This simplifies early bring-up of interrupts and timers. A full high-half kernel layout (KERNEL_BASE / DEVICE_BASE in the 0xFFFF_… range) will be enabled now that IRQs, timers, and the scheduler are stable.
+> **Update (ARM64):**  
+>The kernel now runs entirely in **high‑half virtual addresses** (TTBR1), with
+>- `KERNEL_BASE = 0xFFFF_FF00_0000_0000`
+>- UART mapped in high‑half (`DEVICE_BASE = 0xFFFF_FD00_0000_0000`)    
+>
+>The GIC (GICD/GICC) remains **identity‑mapped** for now, because the interrupt subsystem was brought up in a physical‑address environment. High‑half GIC mapping is already implemented in the MMU tables but not yet used by the driver.
 
 ---
 
@@ -221,6 +227,8 @@ WOS now includes a **stable, process‑based preemptive scheduler** on ARM64.
 - IRQ‑driven preemption using CNTP timer (PPI 30)
 - Round‑robin scheduling
 
+> Note: The scheduler and IRQ pipeline now run entirely under high‑half virtual addresses. All process stacks, exception vectors, and kernel text are mapped in the 0xFFFF_FF00_… region.
+
 ### ✔ IRQ pipeline
 - `irq_entry` (ASM) saves the interrupted process context
 - Rust scheduler selects the next process
@@ -263,9 +271,10 @@ ARM64 is stable; RISC‑V is in early bring‑up.
 - [x] SGI delivery (IPI)
 - [x] Process scheduler (round‑robin)
 - [x] Full context switching
+- [x] High-half kernel mapping (TTBR1)
+- [ ] High-half device mapping (GICv2)
 - [ ] Per‑process virtual memory (TTBR0 switching)
 - [ ] User space (EL0)
-- [ ] High-half kernel mapping (TTBR1)
 - [ ] Heap allocator
 - [ ] Drivers (UART, timer, virtio)
 - [ ] ELF loader

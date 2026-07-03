@@ -9,48 +9,51 @@ use crate::scheduler::process::schedule_process;
 pub extern "C" fn irq_handle_and_schedule(current: usize) -> usize {
 
     unsafe {
-        let ispend_before = // For debug log
-            core::ptr::read_volatile((gicv2::GICD_PADDR + 0x200) as *const u32);
+        crate::uart_println!("\t[IRQ] --- IRQ raised ---");
+
+        /// For debug log
+        let ispend_before = core::ptr::read_volatile((gicv2::GICD_BASE + 0x200) as *const u32);
 
         // read GICC_IAR
         let iar = gicv2::ack();
         let id  = iar & 0x3FF;
-        crate::uart_println!("\t--- IRQ raised ---");
         crate::uart_println!("\t[IRQ] iar=0x{:08x}", iar);
         crate::uart_println!("\t[IRQ] id =      {}", id);
 
         let next = match id {
             timer::TIMER_IRQ => {
-                crate::uart_println!("\t[IRQ] |TIMER IRQ| current={}", current);
+                crate::uart_println!("\t[IRQ] |TIMER IRQ| current = {}", current);
                 
                 // reload timer
                 timer::on_tick();
                 
                 // change process
                 let n = schedule_process(current);
-                crate::uart_println!("\t[IRQ] |TIMER IRQ| next   ={}", n);
-                crate::uart_println!("\t--- IRQ handled ---");
+                crate::uart_println!("\t[IRQ] |TIMER IRQ| next    = {}", n);
                 n
             }
             pl011::UART_IRQ => {
                 crate::uart_println!("\t[IRQ] |UART IRQ|");
                 // UART: no scheduling
                 pl011::on_irq();
-                crate::uart_println!("\t--- IRQ handled ---");
+                current
+            }
+            0x3FF => {
+                // spurious
                 current
             }
             _ => {
                 // SGI / spurious: debug, no scheduling
                 crate::uart_println!("\t[IRQ] |OTHER IRQ| GICD_ISPENDR0 before ack = 0x{:08x}", ispend_before);
                 let ispend0 =
-                    core::ptr::read_volatile((gicv2::GICD_PADDR + 0x200) as *const u32);
+                    core::ptr::read_volatile((gicv2::GICD_BASE + 0x200) as *const u32);
                 crate::uart_println!("\t[IRQ] |OTHER IRQ| GICD_ISPENDR0 after      = 0x{:08x}", ispend0);
-                crate::uart_println!("\t--- IRQ handled ---");
                 current
             }
         };
 
         gicv2::eoi(iar);
+        crate::uart_println!("\t[IRQ] --- IRQ handled ---");
         next
     }
 }

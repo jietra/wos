@@ -33,14 +33,14 @@ pub mod layout {
     //
 
     /// Kernel base: where `.text`, `.rodata`, `.data`, `.bss` are mapped.
-    pub const KERNEL_BASE: usize = 0xFFFF_FF00_0000_0000;
+    pub const KERNEL_BASE: usize = 0xFFFF_FF00_0000_0000;       // High half
 
     /// Kernel heap: virtual memory region used for dynamic allocations.
     pub const KERNEL_HEAP_BASE: usize = 0xFFFF_FE00_0000_0000;
-    pub const KERNEL_HEAP_SIZE: usize = 1 * TB; // adjustable
+    pub const KERNEL_HEAP_SIZE: usize = 1 * TB;                 // adjustable
 
     /// Device MMIO region: UART, GIC, timers, virtio, etc.
-    pub const DEVICE_BASE: usize = 0x0900_0000;//0xffff000000000000;//0xFFFF_FD00_0000_0000;
+    pub const DEVICE_BASE: usize = 0xFFFF_FD00_0000_0000;       // High half //vs 0x0900_0000; in low half (identity mapping) (ARM)
     pub const DEVICE_SIZE: usize = 1 * TB;
 
     /// Reserved region: kept unmapped for future kernel subsystems.

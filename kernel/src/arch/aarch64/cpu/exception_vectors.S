@@ -176,6 +176,16 @@ irq_entry:
     // x0 first, while still intact
     str x0, [x11, #0]
 
+    // Save SP first
+    mov x1, sp
+    str x1, [x11,#248]
+
+    // Save ELR_EL1, SPSR_EL1
+    mrs x2, elr_el1
+    str x2, [x11,#256]
+    mrs x3, spsr_el1
+    str x3, [x11,#264]
+
     // x1..x7
     stp x1, x2, [x11, #8]   // store pair OK (base+8 aligned)
     stp x3, x4, [x11, #24]  // store pair OK (base+24 aligned)
@@ -199,17 +209,6 @@ irq_entry:
     stp x27, x28, [x11,#208]
     stp x29, x30, [x11,#224]
 
-    // sp
-    mov x0, sp
-    str x0, [x11,#248]
-
-    // elr
-    mrs x0, elr_el1
-    str x0, [x11,#256]
-
-    // spsr
-    mrs x0, spsr_el1
-    str x0, [x11,#264]
 
     // 4. Call Rust scheduler : next = irq_handle_and_schedule(current)
     mov     x0, x10                       // current
@@ -230,6 +229,13 @@ irq_entry:
     add     x11, x11, x12                 // x11 = &CTX[next]
 
     // 7. Restore context from ctx (x11 = base)
+    // Restore SP, ELR_EL1, SPSR_EL1 of next
+    ldr x0, [x11,#248]
+    mov sp, x0
+    ldr x0, [x11,#256]
+    msr elr_el1, x0
+    ldr x0, [x11,#264]
+    msr spsr_el1, x0
 
     // x1..x7
     ldp x1, x2, [x11, #8]
@@ -253,18 +259,6 @@ irq_entry:
     ldp x25, x26, [x11,#192]
     ldp x27, x28, [x11,#208]
     ldp x29, x30, [x11,#224]
-
-    // sp
-    ldr x0, [x11,#248]
-    mov sp, x0
-
-    // elr
-    ldr x0, [x11,#256]
-    msr elr_el1, x0
-
-    // spsr
-    ldr x0, [x11,#264]
-    msr spsr_el1, x0
 
     // restore x0 last
     ldr x0, [x11,#0]

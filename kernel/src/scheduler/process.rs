@@ -170,14 +170,24 @@ use crate::tasks::{task0_entry, task1_entry, task2_entry};
 pub unsafe fn init_processes() {
     crate::uart_println!("| INIT. | Initializing scheduler (3 processes)...");
 
-    let p0 = spawn_kernel_process(task0_entry as usize);
-    let p1 = spawn_kernel_process(task1_entry as usize);
-    let p2 = spawn_kernel_process(task2_entry as usize);
+    let p0 = spawn_kernel_process(task0_entry as *const () as usize);
+    let p1 = spawn_kernel_process(task1_entry as *const () as usize);
+    let p2 = spawn_kernel_process(task2_entry as *const () as usize);
 
     CURRENT_PID = p0;
     crate::uart_println!("\tPID0: ", p0);
     crate::uart_println!("\tPID1: ", p1);
     crate::uart_println!("\tPID2: ", p2);
+
+    use core::mem::size_of;
+    crate::uart_println!("\tsizeof(Context) = {}", size_of::<Context>());
+    crate::uart_println!("\tCTX[0].sp  = 0x{:016x}", CTX[0].sp);
+    crate::uart_println!("\tCTX[0].pc  = 0x{:016x}", CTX[0].pc);
+    crate::uart_println!("\tCTX[1].sp  = 0x{:016x}", CTX[1].sp);
+    crate::uart_println!("\tCTX[1].pc  = 0x{:016x}", CTX[1].pc);
+    crate::uart_println!("\tCTX[2].sp  = 0x{:016x}", CTX[2].sp);
+    crate::uart_println!("\tCTX[2].pc  = 0x{:016x}", CTX[2].pc);
+
 }
 
 extern "C" {
