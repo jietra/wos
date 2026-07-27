@@ -349,11 +349,16 @@ hWALT[ARM64] and kWALT[RISC‑V] are in early bring‑up.
 All code submitted to this repository will be licensed under the MIT License.
 
 ### ✔️ Code style & expectations
-- Rust nightly
+- **Rust stable** (Ferrocene‑compatible subset)
 - `no_std`, `no_main`
+- No allocations in privileged code (EL2/EL1)
 - Minimal dependencies
-- Clear, well‑commented low‑level code
+- Clear comments for all unsafe blocks
+- Deterministic, predictable low‑level code (no randomness, no panics in critical paths)
+- No unstable Rust features
 - Small, focused pull requests
+
+Nightly builds using JSON targets are allowed but **not recommended**.
 
 ### ✔️ How to contribute
 1. Fork the repository
