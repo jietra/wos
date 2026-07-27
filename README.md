@@ -180,15 +180,28 @@ kernel/src/arch/
 ---
 
 ## 🧰 Prerequisites
+xWALT is designed to run on a certifiable Rust subset (Ferrocene‑compatible), enabling hWALT to serve as a lean, deterministic, safety‑critical hypervisor for embedded robotics, drones, autonomous systems, and AI‑secure workloads.
+
 xWALT requires:
-- Rust nightly
-- clang / LLVM (for assembling start.S via build.rs)
-- QEMU with ARM64 and RISC‑V support
+- **Rust stable** (no nightly features)
+- **lld** (LLVM linker)
+- **clang** (compiling .S assembly files)
+- **QEMU** with ARM64 and RISC‑V support
 
 On Debian/Ubuntu:
 ```bash
-sudo apt install clang llvm qemu-system-arm qemu-system-misc
+sudo apt install lld clang qemu-system-arm qemu-system-misc
 ```
+
+Use Rust stable:
+```bash
+rustup override unset
+rustup override set stable
+rustup target add aarch64-unknown-none-softfloat --toolchain stable
+rustup target add riscv64gc-unknown-none-elf --toolchain stable
+```
+>Nightly is **not recommended** for certifiable Rust.
+JSON target files (*.json) require nightly-only flags and cannot be used with Rust stable or Ferrocene.
 
 On Apple Silicon, use `UTM` for stable virtualization.
 
@@ -196,17 +209,19 @@ On Apple Silicon, use `UTM` for stable virtualization.
 
 ## 🛠️ Build Instructions
 
-### ARM64
+### ARM64 (Rust stable)
 ```bash
 cd kernel
-cargo build --target targets/aarch64-wos.json
+cargo +stable build --target aarch64-unknown-none-softfloat
 ```
+> Nightly-only alternative (not certifiable): `cargo build --target targets/aarch64-wos.json`
 
-### RISC‑V
+### RISC‑V (Rust stable)
 ```bash
 cd kernel
-cargo build --target targets/riscv64-wos.json
+cargo +stable build --target riscv64gc-unknown-none-elf
 ```
+> Nightly-only alternative (not certifiable): `cargo build --target targets/riscv64-wos.json`
 
 ---
 
@@ -219,31 +234,37 @@ qemu-system-aarch64 \
     -machine dumpdtb=virt.dtb \
     -nographic
 ```
-### Kernel
-Run the kernel:
+### Kernel (EL1)
 ```bash
 qemu-system-aarch64 \
     -M virt \
     -cpu cortex-a72 \
-    -kernel target/aarch64-wos/debug/kernel \
+    -kernel target/aarch64-unknown-none-softfloat/debug/kernel \
     -dtb virt.dtb \
-    -nographic
+    -nographic`
 ```
 
-Or build an image,
+> Nightly-only JSON target: `qemu-system-aarch64 -M virt -cpu cortex-a72 -kernel target/aarch64-wos/debug/kernel -dtb virt.dtb -nographic`
+
+#### Optional: build a raw image
 ```bash
-rust-objcopy --strip-all -O binary target/aarch64-wos/debug/kernel kernel8.img
+llvm-objcopy --strip-all -O binary \
+    target/aarch64-unknown-none-softfloat/debug/kernel kernel8.img
 ```
-and run the kernel from this image:
+Run:
 ```bash
-qemu-system-aarch64   -M virt   -cpu cortex-a72   -kernel kernel8.img   -nographic
+qemu-system-aarch64 \
+    -M virt \
+    -cpu cortex-a72 \
+    -kernel kernel8.img \
+    -nographic
 ```
-### Hypervisor
+### Hypervisor (EL2)
 ```bash
 qemu-system-aarch64 \
     -M virt,virtualization=on \
     -cpu cortex-a72 \
-    -kernel target/aarch64-wos/debug/kernel \
+    -kernel target/aarch64-unknown-none-softfloat/debug/kernel \
     -dtb virt.dtb \
     -nographic
 ```
@@ -255,10 +276,17 @@ Run **without OpenSBI** (`-bios none`):
 qemu-system-riscv64 \
     -M virt \
     -cpu rv64 \
-    -kernel target/riscv64-wos/debug/kernel \
+    -kernel target/riscv64gc-unknown-none-elf/debug/kernel \
     -nographic \
     -bios none
 ```
+> Nightly-only JSON target: 
+`qemu-system-riscv64 \
+    -M virt \
+    -cpu rv64 \
+    -kernel target/riscv64-wos/debug/kernel \
+    -nographic \
+    -bios none`
 
 ---
 

@@ -9,12 +9,17 @@ panic = "abort"
 panic = "abort"
 
 [toolchain]
-channel = "nightly"
+channel = "stable"
+
+[target.aarch64-unknown-none-softfloat]
+linker = "ld.lld"
+rustflags = ["-C", "link-arg=-Tlinker/aarch64.ld",]
 
 [target.aarch64-unknown-none]
 rustflags = ["-C", "link-arg=-Tlinker/aarch64.ld"]
 
 [target.riscv64gc-unknown-none-elf]
+linker = "ld.lld"
 rustflags = ["-C", "link-arg=-Tlinker/riscv64.ld"]
 
 [target.aarch64-wos]
