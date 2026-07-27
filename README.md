@@ -326,6 +326,17 @@ hWALT[ARM64] and kWALT[RISC‑V] are in early bring‑up.
 ---
 
 ## 🗺️ Roadmap
+> 🚧 **Current Limitations**  
+hWALT is a minimal, deterministic EL2 hypervisor designed for research, education, and safety‑critical experimentation.
+It is **not yet a full virtualization stack**.  
+Planned features include:
+>- **Stage‑2 translation (second‑level MMU)** for full guest memory virtualization
+>- **Virtual interrupt controller (VGIC)** for proper guest interrupt routing
+>- **Guest VM creation and scheduling**
+>- **IOMMU / SMMU support** for DMA isolation  
+>- **Hardware‑assisted isolation for AI workloads** (AI‑Secure vision)
+>
+>These features are part of the long‑term roadmap and will progressively evolve as xWALT matures.
 ### Hypervisor (hWALT)
 - [ ] RISC‑V HS-mode
 - [ ] VM creation API
