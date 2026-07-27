@@ -29,4 +29,12 @@ pub mod cntp {
     pub unsafe fn on_tick() {
         write_cntp_tval(TICKS); // reload timer (at 1Hz here)
     }
+
+    pub unsafe fn disable_cntp() {
+        write_cntp_ctl(0); // disable timer
+    }
+
+    pub unsafe fn enable_cntp() {
+        write_cntp_ctl(1); // enable timer, IMASK=0
+    }
 }

@@ -1,3 +1,5 @@
+// src/main.rs
+
 #![no_std]
 #![no_main]
 
@@ -9,6 +11,7 @@ mod debug;
 mod time;
 mod scheduler;
 mod tasks;
+mod user;
 
 use core::panic::PanicInfo;
 

@@ -1,6 +1,7 @@
 // src/scheduler/process.rs
 
 use crate::scheduler::Context;
+use crate::arch::boot::linker_symbols as ls;
 
 #[cfg(target_arch = "aarch64")]
 const DEFAULT_PSR: u64 = 0x5;
@@ -162,39 +163,42 @@ pub fn sched_yield() {
 */
 
 // ---------------------------------------------------------------------------
-// Initiate 3 processes
+// EL0 userland process spawner
 // ---------------------------------------------------------------------------
-//use crate::scheduler::process::spawn_kernel_process;
-use crate::tasks::{task0_entry, task1_entry, task2_entry};
 
-pub unsafe fn init_processes() {
-    crate::uart_println!("| INIT. | Initializing scheduler (3 processes)...");
+pub unsafe fn spawn_user_process(entry: usize) -> usize {
+    if let Some(pid) = alloc_pid() {
+        // kernel stack (for exceptions, IRQ, etc.)
+        let kstack_ptr = KSTACK[pid].0.as_ptr() as u64;
+        let kstack_top = kstack_ptr + KSTACK_SIZE as u64;
 
-    let p0 = spawn_kernel_process(task0_entry as *const () as usize);
-    let p1 = spawn_kernel_process(task1_entry as *const () as usize);
-    let p2 = spawn_kernel_process(task2_entry as *const () as usize);
+        // user stack (EL0)
+        let ustack_top = &ls::_user_stack_top as *const u8 as u64;
 
-    CURRENT_PID = p0;
-    crate::uart_println!("\tPID0: ", p0);
-    crate::uart_println!("\tPID1: ", p1);
-    crate::uart_println!("\tPID2: ", p2);
+        // CPU context for EL0
+        let ctx = Context {
+            regs: [0; 31],
+            sp: ustack_top,          // SP userland
+            pc: entry,               // userland entry point
+            psr: 0x0,                // EL0t, DAIF=0 (simple for now)
+        };
 
-    use core::mem::size_of;
-    crate::uart_println!("\tsizeof(Context) = {}", size_of::<Context>());
-    crate::uart_println!("\tCTX[0].sp  = 0x{:016x}", CTX[0].sp);
-    crate::uart_println!("\tCTX[0].pc  = 0x{:016x}", CTX[0].pc);
-    crate::uart_println!("\tCTX[1].sp  = 0x{:016x}", CTX[1].sp);
-    crate::uart_println!("\tCTX[1].pc  = 0x{:016x}", CTX[1].pc);
-    crate::uart_println!("\tCTX[2].sp  = 0x{:016x}", CTX[2].sp);
-    crate::uart_println!("\tCTX[2].pc  = 0x{:016x}", CTX[2].pc);
+        KSTACK_TOP[pid] = kstack_top;
+        CTX[pid] = ctx;
 
+        PROCS[pid] = Some(Process {
+            pid,
+            state     : ProcessState::Ready,
+            ctx,
+            kstack_top,
+            ustack_top,
+            mmu_root  : 0,
+        });
+
+        return pid;
+    }
+
+    crate::println!("[PROC] no slot available for user process");
+    0
 }
 
-extern "C" {
-    fn start_first_proc() -> !;
-}
-
-pub unsafe fn start_first_proc_rust() {
-    crate::uart_println!("| CHECK | Launching 3 processes...");
-    start_first_proc();
-}

@@ -7,6 +7,8 @@ static mut NEXT_FREE_PHYS: u64 = 0;
 static mut PHYS_LIMIT: u64 = 0;
 
 pub unsafe fn init_phys_alloc(kernel_end: u64) {
+    crate::uart_println!("\tInitializing physical memory allocator...");
+
     let aligned = (kernel_end + 0xFFF) & !0xFFF;
     NEXT_FREE_PHYS = aligned;
     PHYS_LIMIT = 0x8000_0000;
@@ -25,10 +27,6 @@ pub unsafe fn alloc_page() -> Option<u64> {
 // -----------------------------------------------------------------------------
 // MMU page table allocation
 // -----------------------------------------------------------------------------
-// For future expansion, we can add support for freeing pages, keeping track of allocated pages, etc. For now, this is just a simple wrapper around the physical page allocator that returns a pointer to a new page table (which is just a page of memory that we can use for page tables).
-
-/*
 pub unsafe fn alloc_page_table() -> Option<*mut u64> {
     alloc_page().map(|pa| pa as *mut u64)
 }
-*/

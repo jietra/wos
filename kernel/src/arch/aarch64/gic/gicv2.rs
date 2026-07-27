@@ -11,9 +11,9 @@ pub mod gicv2 {
     pub const GICD_VADDR: usize = DEVICE_BASE + 0x0000_0000;
     pub const GICC_VADDR: usize = DEVICE_BASE + 0x0001_0000;
 
-    // Using PA temporarily
-    pub const GICD_BASE: usize = GICD_PADDR;        // will be moved to GICD_VADDR;
-    pub const GICC_BASE: usize = GICC_PADDR;        // will be moved to GICC_VADDR;
+    // Virtual addresses for GICv2 (Distributor and CPU interface) in the DEVICE zone
+    pub const GICD_BASE: usize = GICD_VADDR;
+    pub const GICC_BASE: usize = GICC_VADDR;
 
     // Main registers offsets (GICv2)
     const GICD_CTLR      : usize = 0x000;
@@ -47,35 +47,42 @@ pub mod gicv2 {
         */
 
         // Everything in group0 secure
+        crate::uart_println!("\tInitializing GICv2 in group0 secure...");
         mmio_write32(GICD_BASE + 0x080, 0x0000_0000);  // IGROUPR0 //vs mmio_write32(GICD_BASE + 0x080, 0xFFFF_FFFF); for Group1NS (non secure)
         mmio_write32(GICD_BASE + GICD_CTLR, 0x1);      // Activate Distributor; bit0 = EnableGrp0 //vs mmio_write32(GICD_BASE + GICD_CTLR, 0x2);
         mmio_write32(GICC_BASE + GICC_PMR, 0xFF);      // Activate CPU interface max priority
         mmio_write32(GICC_BASE + GICC_CTLR, 0x1);      // bit0 = EnableGrp0 //vs mmio_write32(GICC_BASE + GICC_CTLR, 0x2);
+        
         /*
-        /// For later: Everything in Group1NS (non-secure)
+        /// Everything in Group1NS (non-secure)
+        crate::uart_println!("\tInitializing GICv2 in group1 non-secure...");
         mmio_write32(GICD_BASE + 0x080, 0xFFFF_FFFF);  // IGROUPR0 : All IRQs in Group1
-        mmio_write32(GICD_BASE + GICD_CTLR, 0x2);      // bit1 = EnableGrp1
+        mmio_write32(GICD_BASE + GICD_CTLR, 0x2);      // Distributor: bit1 = EnableGrp1
         mmio_write32(GICC_BASE + GICC_PMR, 0xFF);      // max priority
-        mmio_write32(GICC_BASE + GICC_CTLR, 0x2);      // bit1 = EnableGrp1
+        mmio_write32(GICC_BASE + GICC_CTLR, 0x2);      // CPU interface: bit1 = EnableGrp1
         */
         
         // Activate all IRQs 0–31 (SGI + PPI)
+        crate::uart_println!("\tActivating all IRQs 0–31 (SGI + PPI)...");
         mmio_write32(GICD_BASE + GICD_ISENABLER0, 0xFFFF_FFFF);
 
         enable_irq(30);                                 // Activate timer's IRQ
         //enable_irq(33);                               // Activate UART's IRQ
 
-        /*
-        /// For debugging purposes: SGI 0, target CPU0
+        
+        // For debugging purposes: SGI 0, target CPU0
         const GICD_SGIR: usize = 0xF00;
         let sgi = (0 << 24)   // TargetListFilter = 0 (use CPUTargetList)
                 | (1 << 16)   // CPUTargetList = 0b0000_0001 (CPU0)
+                | (1 << 15)   // NSATT = 1 → Non-secure Group1NS
                 | (0 << 0);   // SGI ID = 0
         crate::uart_println!("\tSending SGI 0 via GICD_SGIR...");
         mmio_write32(GICD_BASE + GICD_SGIR, sgi);
         let ispend0 = mmio_read32(GICD_BASE + 0x200); // ISPENDR0
         crate::uart_println!("\tGICD_ISPENDR0 after SGI = 0x{:08x}", ispend0);
-        */
+
+        let d_ctlr_va = crate::arch::gic::gicv2::gicv2::mmio_read32(GICD_VADDR + 0x000);
+        crate::uart_println!("\tGICD_CTLR VA  = 0x{:08x}", d_ctlr_va);
 
     }
 
@@ -100,6 +107,8 @@ pub mod gicv2 {
 
     /// For debugging purposes:
     pub unsafe fn dump_gic() {
+        crate::uart_println!("\tGIC dump:");
+        
         let d_ctlr    = mmio_read32(GICD_BASE + GICD_CTLR);
         let d_igroup0 = mmio_read32(GICD_BASE + 0x080);     // IGROUPR0
         let d_isen0   = mmio_read32(GICD_BASE + 0x100);     // ISENABLER0
@@ -119,8 +128,5 @@ pub mod gicv2 {
         crate::uart_println!("\tGICC_PMR    = 0x{:08x}", c_pmr);
         crate::uart_println!("\tGICC_BPR    = 0x{:08x}", c_bpr);
         crate::uart_println!("\tGICC_RPR    = 0x{:08x}", c_rpr);
-
-        let iar = core::ptr::read_volatile((GICC_PADDR + 0x000C) as *const u32);
-        crate::uart_println!("\tGICC_IAR raw = 0x{:08x}", iar);
     }
 }

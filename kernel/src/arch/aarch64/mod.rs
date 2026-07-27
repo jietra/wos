@@ -3,11 +3,14 @@
 pub mod boot;
 pub mod mmio;
 pub mod cpu;
+pub mod svc;
 pub mod mmu;
 pub mod gic;
 pub mod timer;
 pub mod irq;
 pub mod uart;
+pub mod process;
+pub mod syscall;
 
 use crate::drivers::uart::puts;
 use crate::memory::phys::init_phys_alloc;
@@ -25,7 +28,7 @@ use mmu::{
 use gic::gicv2::gicv2;
 
 pub fn init_arch() {
-    puts("| BOOT  | Booting WOS...\n");
+    puts("| BOOT  | Booting xWALT...\n");
 
     // | CHECK | CPU checks  --------------------------------
     unsafe {
@@ -52,13 +55,8 @@ pub fn init_arch() {
     // --- Initializing MMU and page tables --------------------------------
     puts("| INIT. | Initializing MMU...\n");
     unsafe {
-        /// For debugging purposes
-        // crate::arch::mmu::tables::save_exc_pa();
-
-        puts("\tinit MAIR...\n");
         init_mair();                // Initialize MAIR (Memory Attribute Indirection Register) to set up memory attributes
         
-        puts("\tinit TCR...\n");
         init_tcr();                 // Initialize TCR (Translation Control Register) to set up the virtual address space size and granule size
         
         // | CHECK | linker addresses ---------------------
@@ -69,70 +67,34 @@ pub fn init_arch() {
         use boot::linker_symbols::_stack_top;
         use boot::linker_symbols::_exceptions_start;
         use boot::linker_symbols::_exceptions_end;
-        unsafe {
-            let text_start = &_text_start       as *const u8 as u64;
-            let text_end   = &_text_end         as *const u8 as u64;
-            let stack_start= &_stack_start      as *const u8 as u64;
-            let stack_top  = &_stack_top        as *const u8 as u64;
-            let exc_start  = &_exceptions_start as *const u8 as u64;
-            let exc_end    = &_exceptions_end   as *const u8 as u64;
-            crate::uart_println!("\t\t_text_start  = 0x{:016x}", text_start);
-            crate::uart_println!("\t\t_text_end    = 0x{:016x}", text_end);        
-            crate::uart_println!("\t\t_stack_start = 0x{:016x}", stack_start);
-            crate::uart_println!("\t\t_stack_top   = 0x{:016x}", stack_top);
-            crate::uart_println!("\t\t_exc_start   = 0x{:016x}", exc_start);
-            crate::uart_println!("\t\t_exc_end     = 0x{:016x}", exc_end);
-        }
+        let text_start = &_text_start       as *const u8 as u64;
+        let text_end   = &_text_end         as *const u8 as u64;
+        let stack_start= &_stack_start      as *const u8 as u64;
+        let stack_top  = &_stack_top        as *const u8 as u64;
+        let exc_start  = &_exceptions_start as *const u8 as u64;
+        let exc_end    = &_exceptions_end   as *const u8 as u64;
+        crate::uart_println!("\t\t_text_start  = 0x{:016x}", text_start);
+        crate::uart_println!("\t\t_text_end    = 0x{:016x}", text_end);        
+        crate::uart_println!("\t\t_stack_start = 0x{:016x}", stack_start);
+        crate::uart_println!("\t\t_stack_top   = 0x{:016x}", stack_top);
+        crate::uart_println!("\t\t_exc_start   = 0x{:016x}", exc_start);
+        crate::uart_println!("\t\t_exc_end     = 0x{:016x}", exc_end);
 
-        puts("\tinit page_tables...\n");
-        init_page_tables();
-
-        puts("\tinit TTBR0...\n"); //for kernel which is still in low half
         init_ttbr0();
         
-        puts("\tinit TTBR1...\n");
         init_ttbr1();
 
-        puts("\tenable MMU...\n");
+        init_phys_alloc(&_kernel_end as *const u8 as u64);
+
+        init_page_tables();
+
         enable_mmu();
         core::arch::asm!("isb");    // Ensure that all changes to the MMU configuration are visible before we continue
 
         crate::uart_println!("\t---\n\tsetting VBAR_EL1 to virtual address...");
         set_vbar_in_va();           // set VBAR in virtual adress (since MMU now activated)
         
-        init_phys_alloc(&_kernel_end as *const u8 as u64);
     }
-
-    /*
-    /// Fallback in case of pb with exception vector address (debugging purposes)
-    unsafe {
-        use crate::arch::mmu::tables::phys_to_kernel_virt;
-        //let exc_pa = crate::arch::boot::linker_symbols::_exceptions_start as u64;
-        let exc_va = phys_to_kernel_virt(crate::arch::mmu::tables::EXC_PA);
-        core::arch::asm!("msr VBAR_EL1, {}", in(reg) exc_va);
-        let mut vbar: u64;
-        core::arch::asm!("mrs {0}, VBAR_EL1", out(reg) vbar);
-        crate::uart_println!("\tVBAR_EL1 after  set vbar in va = 0x", vbar);
-        crate::uart_println!("exc_va = ", exc_va);
-        crate::uart_println!("exc_pa = ", crate::arch::mmu::tables::EXC_PA);
-        crate::uart_println!("---");
-    }
-    */
-
-    /*
-    /// DAIF checks (debugging purposes)
-    unsafe {
-        let mut daif: u64;
-        core::arch::asm!("mrs {0}, DAIF", out(reg) daif);
-        crate::uart_println!("DAIF before = 0x{:016x}", daif);
-
-        // Clear le bit I (IRQ mask)
-        core::arch::asm!("msr DAIFClr, #0b001");
-
-        core::arch::asm!("mrs {0}, DAIF", out(reg) daif);
-        crate::uart_println!("DAIF after  = 0x{:016x}", daif);
-    }
-    */
 
     // | CHECK | Testing memory access after MMU enabled --------------------------------
     unsafe { crate::debug::memory::test_memory(); }
@@ -140,22 +102,14 @@ pub fn init_arch() {
 
     // --- Initializing Gicv2 -----------------------------
     puts("| INIT. | Initializing GIC v2...\n");
-    unsafe { 
-        use crate::arch::gic::gicv2::gicv2::GICD_PADDR;
-        let d_ctlr_pa = core::ptr::read_volatile((GICD_PADDR + 0x000) as *const u32);
-        
+    unsafe {         
         gicv2::init();
-        
-        crate::uart_println!("\tGIC dump:");
         gicv2::dump_gic();
         
         crate::uart_println!("\t---");
         use crate::arch::gic::gicv2::gicv2::GICD_VADDR;
         let d_ctlr_va = crate::arch::gic::gicv2::gicv2::mmio_read32(GICD_VADDR + 0x000);
-        crate::uart_println!("\tGICD_CTLR PA  = 0x{:08x}", d_ctlr_pa);
         crate::uart_println!("\tGICD_CTLR VA  = 0x{:08x}", d_ctlr_va);
-        let typer_pa = core::ptr::read_volatile((GICD_PADDR + 0x004) as *const u32);
-        crate::uart_println!("\tGICD_TYPER PA = 0x{:08x}", typer_pa);
     }
     puts("\tGIC enabled\n");
 
@@ -169,9 +123,9 @@ pub fn init_arch() {
     unsafe { crate::arch::aarch64::gic::gicv2::gicv2::enable_irq(crate::arch::aarch64::timer::cntp::cntp::TIMER_IRQ); }
     
     puts("\n\n==========================================================\n");
-
-    puts("\nWOS-AARCH64 Firmware v0.1\n");
-    puts("(c) 2026 Ulrich Tan\n\n");
+    puts(    "                xWALT-AARCH64 Firmware v0.1               \n");
+    puts(    "                    (c) 2026 Ulrich Tan                   \n");
+    puts(    "==========================================================\n\n");
 
     puts("[ OK ] CPU initialized\n");
     puts("[ OK ] Exception vectors initialized\n");
@@ -181,21 +135,82 @@ pub fn init_arch() {
 
     puts("Booting kernel...\n\n");
 
-    puts("██╗    ██╗ ██████╗  ██████╗\n");
-    puts("██║    ██║██╔═══██╗██╔════╝\n");
-    puts("██║ █╗ ██║██║   ██║ █████╗ \n");
-    puts("██║███╗██║██║   ██║     ██║\n");
-    puts("╚███╔███╔╝╚██████╔╝██████╔╝\n");
-    puts(" ╚══╝╚══╝  ╚═════╝ ╚═════╝ \n\n");
-    puts(" W O S   –   A A R C H 6 4\n\n");
+    puts("       ██╗    ██╗ █████╗ ██╗  ████████╗\n");
+    puts("       ██║    ██║██╔══██╗██║  ╚══██╔══╝\n");
+    puts("██╗ ██╗██║ █╗ ██║███████║██║     ██║   \n");
+    puts(" ╚██╔═╝██║███╗██║██╔══██║██║     ██║   \n");
+    puts("██║ ██║╚███╔███╔╝██║  ██║███████╗██║   \n");
+    puts("╚═╝ ╚═╝ ╚══╝╚══╝ ╚═╝  ╚═╝╚══════╝╚═╝   \n\n");
+    puts("           xWALT OS – AARCH64          \n\n");
 
     // --- Welcome message --------------------------------
-    puts("\n---------------------------------------\n");
-    puts(  "|       Hello from WOS-AARCH64!       |"  );
-    puts("\n---------------------------------------\n\n");
+    puts("\n-----------------------------------------\n");
+    puts(  "|       Hello from xWALT-AARCH64!       |"  );
+    puts("\n-----------------------------------------\n\n");
 
     // | CHECK | Init and launch 3 tasks --------------------------------
-    unsafe { crate::scheduler::process::init_processes(); }
-    unsafe { crate::scheduler::process::start_first_proc_rust(); }
+    puts("xWALT OS is ready.\n\n");
+    unsafe { crate::arch::aarch64::timer::cntp::cntp::disable_cntp(); }
+    unsafe { ask_launch_demo_tasks(); }
 
+}
+
+use crate::drivers::uart::getc;
+pub fn ask_launch_demo_tasks() {
+    puts("Launching demo processe(s) ? [Y/N]\n");
+
+    loop {
+        let c = getc(); // reads UART
+
+        match c {
+            b'Y' | b'y' => {
+                puts("-> Starting demo tasks...\n");
+                //puts("enable cntp:");
+                //unsafe { crate::arch::aarch64::timer::cntp::cntp::enable_cntp(); }
+                puts("init processes:");
+                unsafe { crate::arch::aarch64::process::process::init_processes(); }
+                puts("start first process:");
+                unsafe { crate::arch::aarch64::process::process::start_first_proc_rust(); }
+                break;
+            }
+            b'N' | b'n' => {
+                puts("-> Skipping demo tasks.\n");
+                break;
+            }
+            _ => {
+            }
+        }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn rust_main_el2() -> ! {
+    // init minimal hypervisor: log, setup, boucle, etc.
+    // --- Welcome message --------------------------------
+    puts("\n\n==========================================================\n");
+    puts("                   xWALT Hypervisor v0.1\n");
+    puts("                     (c) 2026 Ulrich Tan\n");
+    puts("==========================================================\n\n");
+
+    puts("[ OK ] EL2 mode entered\n");
+    puts("[ OK ] UART initialized\n");
+    puts("[ .. ] No EL2 MMU (VM=0)\n");
+    puts("[ .. ] No EL2 exception vectors\n");
+    puts("[ .. ] No EL2 interrupt controller\n\n");
+
+    puts("Booting guest kernel...\n\n");
+
+    puts("        ██╗    ██╗ █████╗ ██╗   ████████╗\n");
+    puts("        ██║    ██║██╔══██╗██║   ╚══██╔══╝\n");
+    puts("██╗  ██╗██║ █╗ ██║███████║██║      ██║   \n");
+    puts(" ╚███╔╝ ██║███╗██║██╔══██║██║      ██║   \n");
+    puts("██║  ██║╚███╔███╔╝██║  ██║███████╗ ██║   \n");
+    puts("╚═╝  ╚═╝ ╚══╝╚══╝ ╚═╝  ╚═╝╚══════╝ ╚═╝   \n\n");
+    puts("              xWALT HYPERVISOR           \n\n");
+
+    puts("---------------------------------------\n");
+    puts("|        Hello from xWALT-EL2!        |\n");
+    puts("---------------------------------------\n\n");
+
+    loop{};
 }

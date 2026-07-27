@@ -77,12 +77,71 @@ extern "C" fn serr_current_spx_rust() {
 
 #[no_mangle]
 extern "C" fn sync_lower_64_rust() {
-    puts("[SYNC] from lower EL, AArch64\n");
+    let esr: u64;
+    let far: u64;
+    let elr: u64;
+
+    unsafe {
+        core::arch::asm!(
+            "mrs {0}, ESR_EL1",
+            "mrs {1}, FAR_EL1",
+            "mrs {2}, ELR_EL1",
+            out(reg) esr,
+            out(reg) far,
+            out(reg) elr,
+            options(nostack, preserves_flags),
+        );
+    }
+
+    let ec = (esr >> 26) & 0x3F;
+
+    match ec {
+        0x15 => {
+            // SVC: we should not normally reach this point, as SVC should be handled by the scheduler or the SVC handler.
+            // however, if we reach here, it means that the SVC was not handled properly, and we should print an error message and return.
+            puts("[SYNC] SVC (unexpected path)\n");
+            return;
+        }
+        // trap WFI/WFE
+        0x01 | 0x00 => {
+
+            /*
+            // Debug
+            puts("EC = "); put_hex_ln(ec);
+            puts("ELR_EL1 = 0x"); put_hex_ln(elr);
+            unsafe {
+                let instr = *(elr as *const u32);
+                puts("INSTR = 0x"); put_hex_ln(instr as u64);
+            }
+            
+            puts("[SYNC] unknown / trapped instruction, halting\n");
+            puts("ESR_EL1 = 0x"); put_hex_ln(esr);
+            puts("FAR_EL1 = 0x"); put_hex_ln(far);
+            puts("ELR_EL1 = 0x"); put_hex_ln(elr);
+            
+            loop {}
+            */
+            return;
+        }
+        _ => {
+            puts("[SYNC] from lower EL, AArch64\n");
+            puts("ESR_EL1 = 0x"); put_hex_ln(esr);
+            puts("FAR_EL1 = 0x"); put_hex_ln(far);
+            puts("ELR_EL1 = 0x"); put_hex_ln(elr);
+
+            loop {}
+        }
+    }
 }
 
 #[no_mangle]
 extern "C" fn irq_lower_64_rust() {
     puts("[IRQ] from lower EL, AArch64\n");
+    loop {}
+    // TODO: schedule
+    //"let current = CURRENT_PID;
+    //"let next = irq_handle_and_schedule(current);
+    //"switch_to(next);
 }
 
 #[no_mangle]
@@ -138,4 +197,18 @@ pub unsafe fn init_exceptions() {
     let vbar: u64;
     core::arch::asm!("mrs {0}, VBAR_EL1", out(reg) vbar);
     puts("\tVBAR_EL1 \t= 0x"); put_hex_ln(vbar);
+}
+
+
+#[no_mangle]
+extern "C" fn log_spsr_elr(spsr: u64, elr: u64) {
+    puts("\tRET: SPSR_EL1 = 0x"); put_hex_ln(spsr);
+    puts("\tRET: ELR_EL1  = 0x"); put_hex_ln(elr);
+}
+
+// TODO: to be removed (only for debug)
+#[no_mangle]
+extern "C" fn log_spsr_elr_svc(spsr: u64, elr: u64) {
+    puts("[SVC] RET: SPSR_EL1 = 0x"); put_hex_ln(spsr);
+    puts("[SVC] RET: ELR_EL1  = 0x"); put_hex_ln(elr);
 }

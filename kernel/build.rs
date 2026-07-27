@@ -1,3 +1,5 @@
+// build.rs
+
 fn main() {
     let arch = std::env::var("CARGO_CFG_TARGET_ARCH").unwrap();
 
@@ -15,6 +17,7 @@ fn main() {
     if arch == "aarch64" {
         cc::Build::new()
             .file("src/arch/aarch64/boot/start.S")
+            //.file("src/arch/aarch64/boot/hstart.S")
             .file("src/arch/aarch64/cpu/exception_vectors.S")
             .file("src/arch/aarch64/cpu/switch.S")
             .compiler("clang")

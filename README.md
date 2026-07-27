@@ -1,18 +1,26 @@
-# WOS — W. Operating System
+# xWALT — Lean Rust Hypervisor & Minimal OS Stack
+
+## Safety‑critical virtualization for embedded robotics, drones, autonomous systems, and AI‑secure workloads
 
 <p align="center">
-  <img src="docs/screenshots/wos-aarch64-boot.png" width="48%" />
-  <img src="docs/screenshots/wos-riscv-boot.png" width="48%" />
+  <img src="docs/screenshots/xWALT_logo.png" width="48%" />
 </p>
 
 ![Status](https://img.shields.io/badge/status-kernel_ready-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
-**WOS** is an experimental operating system written in **Rust**, built **from scratch**, now supporting **ARM64/AArch64** *and* **RISC-V (rv64)** architectures. It is a **minimal, clean, educational kernel**, designed to be understandable, hackable, and a solid foundation for OS research.  
+**xWALT** is a clean, lean, multi‑architecture (ARM, RISC-V) virtualization and operating‑system stack written in **Rust**, designed for **safety‑critical embedded systems, robotics, drones, autonomous vehicles**, and **AI‑secure execution environments**.  
+
+It is composed of three layers:
+- **hWALT** — a minimal, certifiable-friendly **hypervisor** (ARM EL2, RISC‑V HS-mode planned)
+- **kWALT** — a compact **kernel** (ARM EL1 / RISC‑V S-mode)
+- **uWALT** — a tiny **userland** (EL0 / U-mode)
+
+xWALT focuses on **isolation, determinism, memory safety**, and **auditability**, making it suitable for environments where correctness and trust boundaries matter.
 
 ## Table of Contents
 - [Project Vision](#-project-vision)
-- [Multi-Architecture Support](#-multi-architecture-support)
+- [Architecture Overview](#-architecture-overview)
 - [Current Features](#-current-features)
 - [Project Structure](#-project-structure)
 - [Prerequisites](#-prerequisites)
@@ -28,54 +36,93 @@
 
 ## 🎯 Project Vision
 
-WOS is a research‑driven exploration of how operating‑system foundations might evolve in an era where adaptive, learning‑based components become pervasive. It has two complementary goals:
+### 1. **A lean, certifiable Rust hypervisor (hWALT)**
+hWALT is designed to be:
+- **minimal** — small trusted computing base
+- **memory‑safe** — Rust, no undefined behavior
+- **deterministic** — predictable control flow
+- **auditable** — simple architecture, clear invariants
+- **portable** — ARM64 EL2 today, RISC‑V HS-mode tomorrow
 
-### 1. **A minimal and educational Rust OS (ARM64 + RISC-V)**
-WOS provides a clear, modern, and understandable foundation for learning:
-- how to boot ARM64 and RISC-V CPUs    
-- how to write a Rust kernel without a runtime (`no_std`, `no_main`)  
-- how to configure the ARM64 MMU
-- how to manage physical memory  
-- how interrupts, traps, and exceptions work
-- how to implement a scheduler and context switching
+This makes hWALT suitable for:
+- drones and UAVs
+- robotics platforms
+- automotive ECUs
+- industrial controllers
+- embedded AI accelerators
 
-It is ideal for:
-- systems programming students  
-- Rust developers curious about OS internals  
-- researchers needing a minimal multi-arch environment
-- people wanting a simple ARM64 or RISC-V kernel    
-- hobbyists building their own OS
+Where strict isolation is required between:
+- navigation
+- sensor fusion
+- flight control
+- perception models
+- communication subsystems
 
-### 2. **A future platform for an AI‑native operating system**
-WOS is also the foundation for a broader research direction exploring the idea of an AI‑native OS.
+### 2. **Security for AI workloads**
+Modern AI systems require:
+- **strong isolation** between models
+- **trusted execution** for safety‑critical inference
+- **sandboxing** of untrusted agents
+- **deterministic scheduling**
+- **verified memory boundaries**
 
-> Note: AI components are not part of the public codebase. 
+xWALT provides a foundation for **AI‑secure execution**, where the hypervisor enforces strict boundaries between:
+- control logic
+- perception models
+- planning modules
+- external communication 
+
+### 3. **A minimal OS for research, education, and embedded systems**
+kWALT + uWALT form a tiny OS stack:
+- simple MMU
+- minimal scheduler
+- userland execution
+- clean Rust code
+- no legacy baggage
+
+Ideal for:
+- learning OS internals
+- experimenting with virtualization
+- prototyping embedded systems
+- teaching systems programming
+- building custom kernels
 
 ---
 
-## 🏗️ Multi‑Architecture Support
+## 🏗️ Architecture Overview
+
+```
+xWALT
+ ├── hWALT   # Hypervisor (EL2 / HS-mode)
+ ├── kWALT   # Kernel (EL1 / S-mode)
+ └── uWALT   # Userland (EL0 / U-mode)
+```
 
 ### ✔ ARM64 / AArch64
-- custom bootloader
-- EL1 initialization
-- full MMU setup (MAIR, TCR, TTBR0, SCTLR)
-- 4‑level page tables (L0/L1/L2/L3)
-- UART
-- GICv2 interrupts
-- CNTP timer
-- physical page allocator
-- preemptive process scheduler (round‑robin)
-- full context switching (x0..x30, SP, ELR, SPSR)
+#### Hypervisor (EL2 early bring‑up stage)
+- EL2 boot and CPU initialization
+- EL2 exception vectors
+> hWALT currently provides the firmware‑like EL2 environment and isolation groundwork, but **does not yet implement full virtualization or guest VM management**.
+#### Kernel (EL1)
+- Full MMU + page tables setup (MAIR, TCR, TTBR0/TTBR1, 4‑level page tables)
+- High‑half kernel mapping
+- UART, GICv2, CNTP timer
+- Scheduler (round‑robin)
+- Full context switching
+- Exception handling (sync exceptions, aborts, FP/SIMD traps)
+#### Userland EL0 with syscalls (svc)
+- Userland (EL0)
+- Dedicated user stack
+- User text/data sections
+- Syscall ABI
+- Minimal shell
 
 ### ✔ RISC‑V (rv64) — Early bring‑up
-- custom bootloader
-- stack setup
+- Boot without OpenSBI (`-bios none`)
 - Rust entry
 - UART output
-- trap handler (Rust + trap.S)
-- early exception debugging
-- working linker script
-- custom target JSON
+- Trap handler (Rust + trap.S)
+- Early exception debugging
 
 Architecture‑specific code lives in:
 ```
@@ -86,29 +133,27 @@ kernel/src/arch/
 ---
 
 ## ✨ Current Features
-
+### Hypervisor (hWALT)
+- [ARM64] EL2 initialization
+### Kernel (kWALT)
 - Rust kernel (`no_std`, `no_main`)
-- Custom boot code for ARM64 and RISC‑V
-- UART driver (console output)
-- [ARM64] exception handling (synchronous exceptions, data aborts, FP/SIMD traps)
+- Multi‑arch boot code
 - [ARM64] MMU + page tables
-- [ARM64] Physical page allocator (4K pages)
-- [ARM64] High‑half kernel (KERNEL_BASE = 0xFFFF_FF00_0000_0000)
-- [ARM64] High‑half UART MMIO (DEVICE_BASE = 0xFFFF_FD00_0000_0000)
-- [ARM64] GICv2 still identity‑mapped (temporary)
+- [ARM64] High‑half virtual memory
+- [ARM64] Page allocator
+- [ARM64] Exception handling (synchronous exceptions, data aborts, FP/SIMD traps)
 - [ARM64] GICv2 interrupt subsystem
-- [ARM64] CNTP timer interrupts
-- [ARM64] Process‑based scheduler (round‑robin)
-- [ARM64] Pure ASM context switching
-- [ARM64] IRQ‑driven preemption
-- [RISC‑V] trap handling
-
-> **Update (ARM64):**  
->The kernel now runs entirely in **high‑half virtual addresses** (TTBR1), with
->- `KERNEL_BASE = 0xFFFF_FF00_0000_0000`
->- UART mapped in high‑half (`DEVICE_BASE = 0xFFFF_FD00_0000_0000`)    
->
->The GIC (GICD/GICC) remains **identity‑mapped** for now, because the interrupt subsystem was brought up in a physical‑address environment. High‑half GIC mapping is already implemented in the MMU tables but not yet used by the driver.
+- [ARM64] Scheduler (round‑robin)
+- [ARM64] Full context switching
+- [ARM64] Timer interrupts
+- [RISC‑V] trap handling (mstatus, mtvec, mepc, mcause, mtval)
+### Userland (uWALT)
+- Dedicated user stack
+- User text/data sections
+- Syscalls (svc / ecall)
+- Minimal shell
+- Architecture‑specific syscall ABI
+- Clean separation from kernel
 
 ---
 
@@ -118,8 +163,9 @@ kernel/src/arch/
 /docs                   # Technical documentation
 /kernel
   ├── src
-  │   ├── arch/aarch64  # ARM64-specific code
-  │   ├── arch/riscv64  # RISC-V-specific code
+  │   ├── arch/aarch64  # Hypervisor + kernel + syscalls
+  │   ├── arch/riscv64  # Boot + traps + syscalls
+  │   ├── user          # uWALT userland
   │   ├── memory        # Memory management
   │   ├── drivers       # UART, future DTB parsing, etc.
   │   ├── debug         # Debug helpers
@@ -134,7 +180,7 @@ kernel/src/arch/
 ---
 
 ## 🧰 Prerequisites
-WOS requires:
+xWALT requires:
 - Rust nightly
 - clang / LLVM (for assembling start.S via build.rs)
 - QEMU with ARM64 and RISC‑V support
@@ -144,19 +190,19 @@ On Debian/Ubuntu:
 sudo apt install clang llvm qemu-system-arm qemu-system-misc
 ```
 
-On Apple Silicon, use `UTM` for stable ARM64 virtualization.
+On Apple Silicon, use `UTM` for stable virtualization.
 
 ---
 
 ## 🛠️ Build Instructions
 
-### Build for ARM64
+### ARM64
 ```bash
 cd kernel
 cargo build --target targets/aarch64-wos.json
 ```
 
-### Build for RISC‑V
+### RISC‑V
 ```bash
 cd kernel
 cargo build --target targets/riscv64-wos.json
@@ -173,7 +219,7 @@ qemu-system-aarch64 \
     -machine dumpdtb=virt.dtb \
     -nographic
 ```
-
+### Kernel
 Run the kernel:
 ```bash
 qemu-system-aarch64 \
@@ -192,14 +238,15 @@ and run the kernel from this image:
 ```bash
 qemu-system-aarch64   -M virt   -cpu cortex-a72   -kernel kernel8.img   -nographic
 ```
-
-> Note (ARM64): Interrupt Controller (GIC)
->
-> WOS now includes **working GICv2 initialization** (Distributor + CPU interface + Timer PPI + SGI). At this stage, the kernel still uses **identity-mapped physical addresses** for MMIO (e.g., UART at 0x0900_0000, GICD at 0x0800_0000), because the high-half virtual address space (DEVICE_BASE at 0xFFFF_FD00_0000_0000) is not enabled yet.
->
-> This is intentional: interrupts, timers, and exception handling are brought up first in a simple identity-mapped environment before enabling the full high-half kernel with TTBR1 and virtualized device mappings.
-
-> Note (ARM64): Timer (CNTP) and SGI interrupts are now fully working under GICv2 in the identity‑mapped early kernel.
+### Hypervisor
+```bash
+qemu-system-aarch64 \
+    -M virt,virtualization=on \
+    -cpu cortex-a72 \
+    -kernel target/aarch64-wos/debug/kernel \
+    -dtb virt.dtb \
+    -nographic
+```
 
 ## ▶️ Run in QEMU (RISC‑V)
 Run **without OpenSBI** (`-bios none`):
@@ -217,7 +264,7 @@ qemu-system-riscv64 \
 
 ## 🧵 Scheduler & Context Switching (ARM64)
 
-WOS now includes a **stable, process‑based preemptive scheduler** on ARM64.
+xWALT[ARM64] includes a **stable, process‑based preemptive scheduler**.
 
 ### ✔ Architecture
 - Process Control Block (PCB) stored in `PROCS[]`
@@ -226,8 +273,6 @@ WOS now includes a **stable, process‑based preemptive scheduler** on ARM64.
 - Pure AArch64 context switch (save/restore x0..x30, SP, ELR, SPSR)
 - IRQ‑driven preemption using CNTP timer (PPI 30)
 - Round‑robin scheduling
-
-> Note: The scheduler and IRQ pipeline now run entirely under high‑half virtual addresses. All process stacks, exception vectors, and kernel text are mapped in the 0xFFFF_FF00_… region.
 
 ### ✔ IRQ pipeline
 - `irq_entry` (ASM) saves the interrupted process context
@@ -246,70 +291,34 @@ Separating the PCB from the CPU context ensures:
 ---
 
 ## 📌 Current Status
-
-WOS is a functional minimal kernel, ready for:
-- virtual memory per process
-- user space
-- ELF loader
-- drivers
-- advanced scheduling
-
-ARM64 is stable; RISC‑V is in early bring‑up.
+kWALT[ARM64] is stable.
+uWALT[ARM64] is at an early stage (first syscall).
+hWALT[ARM64] and kWALT[RISC‑V] are in early bring‑up.
 
 ---
 
 ## 🗺️ Roadmap
-
-### ARM64
-
-- [x] Boot + Rust kernel
-- [x] UART output
-- [x] MMU + page tables
-- [x] Physical page allocator
-- [x] GICv2 interrupt subsystem (Distributor + CPU interface + timer PPI + SGI)
-- [x] Timer interrupts (CNTP, PPI 30)
-- [x] SGI delivery (IPI)
-- [x] Process scheduler (round‑robin)
-- [x] Full context switching
-- [x] High-half kernel mapping (TTBR1)
-- [ ] High-half device mapping (GICv2)
-- [ ] Per‑process virtual memory (TTBR0 switching)
-- [ ] User space (EL0)
-- [ ] Heap allocator
-- [ ] Drivers (UART, timer, virtio)
+### Hypervisor (hWALT)
+- [ ] RISC‑V HS-mode
+- [ ] VM creation API
+- [ ] Virtual devices
+- [ ] Static partitioning mode
+- [ ] Certifiable configuration (no dynamic alloc)
+### Kernel (kWALT)
+- [ ] Per‑process TTBR0
 - [ ] ELF loader
-
-### RISC‑V
-
-- [x] Boot + Rust entry
-- [x] UART
-- [x] Trap handler (mstatus, mtvec, mepc, mcause, mtval)
-- [ ] Interrupt handling (timer + external)
-- [ ] Sv39 MMU
-- [ ] Virtual memory
-- [ ] Scheduler
+- [ ] VirtIO drivers
+- [ ] IPC primitives
+### Userland (uWALT)
+- [ ] Minimal libc
+- [ ] Shell commands
+- [ ] Process spawning
+- [ ] File system prototype
 
 ---
 
 ## 🤝 Contributing
-Contributions are welcome — especially in the areas of:
-- ARM64 bring‑up
-- RISC‑V bring‑up
-- Rust `no_std`
-- Memory management
-- Exception handling
-- Drivers
-- Documentation
-
-### ✔️ Kernel contributions follow MIT license
-All code submitted to this repository will be licensed under the MIT License, consistent with the rest of the kernel.
-
-### ✔️ AI‑native components are not open to contribution
-The AI‑native runtime and related modules are **not part of this repository** and remain closed‑source and proprietary.
-They are developed separately and are **not open to direct code contributions**.
-
-However, **high‑level discussions, conceptual feedback, and private exchanges about the AI‑native architecture are welcome**.
-If you are interested in the research direction or want to discuss ideas, feel free to open an issue or reach out privately.
+All code submitted to this repository will be licensed under the MIT License.
 
 ### ✔️ Code style & expectations
 - Rust nightly
@@ -329,14 +338,7 @@ If you're unsure whether a contribution fits the project, feel free to open an i
 ---
 
 ## 📜 License
-WOS uses a **dual licensing model**:
 
-### **1. Kernel (this repository) — MIT License**
-All publicly available components of WOS are released under the **MIT License**.  
-This makes the kernel freely usable for learning, experimentation, and derivative work.
-
-### **2. AI‑native components — Proprietary**
-The AI‑native runtime and related modules are **not included in this repository** and remain **closed‑source and proprietary**.  
-They will be distributed separately and are not covered by the MIT license.
+All publicly available components are released under the **MIT License**.  
 
 See the [LICENSE](LICENSE) file for details.

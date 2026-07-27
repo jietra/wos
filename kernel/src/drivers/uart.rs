@@ -18,3 +18,10 @@ pub fn puts(s: &str) {
         putc(b);
     }
 }
+
+#[inline(always)]
+pub fn getc() -> u8 {
+    unsafe {
+        core::ptr::read_volatile(UART_BASE as *const u8)
+    }
+}

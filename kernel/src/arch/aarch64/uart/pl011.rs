@@ -1,3 +1,5 @@
+// src/arch/aarch64/uart/pl011.rs
+
 pub const UART_IRQ: u32 = 33; // QEMU virt: UART0 IRQ = 33
 
 const UART_BASE: usize = 0x0900_0000;

@@ -113,6 +113,49 @@ serr_current_spx:
 // --- lower EL / AArch64 --------------------------
 .global sync_lower_64
 sync_lower_64:
+    // DO NOT touch x0..x7 (EL0 args)
+    mrs x9, esr_el1          // ESR_EL1
+    mrs x10, elr_el1         // ELR_EL1
+    mrs x11, far_el1         // FAR_EL1
+
+    // EC = bits [31:26] of ESR_EL1
+    lsr x12, x9, #26
+    and x12, x12, #0x3F      // x12 = EC
+
+    cmp x12, #0x15           // SVC from AArch64 ?
+    b.eq handle_svc
+
+    // other exceptions
+    b   handle_sync_lower_el_other
+
+.global handle_svc
+handle_svc:
+    // When SVC :
+    // x0 = ptr (user buffer)
+    // x1 = len
+    // x8 = num (SYS_WRITE)
+
+    // Save ptr and len in temp registers
+    mov x9, x0          // save ptr
+    mov x10, x1         // save len
+
+    // Prepare arguments for svc_dispatch(num, arg0, arg1, ...)
+    mov x0, x8          // num
+    mov x1, x9          // arg0 = ptr
+    mov x2, x10         // arg1 = len
+    // x3..x5 if needed later
+
+    bl  svc_dispatch    // call Rust handler
+
+    // For debug
+    mrs x0, spsr_el1
+    mrs x1, elr_el1
+    bl log_spsr_elr_svc
+
+    eret                // return to EL0 (instruction after svc)
+
+.global handle_sync_lower_el_other
+handle_sync_lower_el_other:
     bl sync_lower_64_rust
     eret
 
@@ -301,19 +344,26 @@ start_first_proc:
     ldp x27, x28, [x11,#208]
     ldp x29, x30, [x11,#224]
 
-    // sp
-    ldr x0, [x11,#248]
-    mov sp, x0
+    // sp (user stack)
+    ldr x0, [x11,#248]      // x0 = CTX[0].sp (0x402091a0)
+    //mov sp, x0
+    msr sp_el0, x0          // SP_EL0 = user_stack_top
+    mov sp, x0              // SP = SP_EL0 (for EL0 mode)
 
     // elr
     ldr x0, [x11,#256]
-    msr elr_el1, x0
+    msr elr_el1, x0         // PC = user_shell_entry
 
     // spsr
     ldr x0, [x11,#264]
-    msr spsr_el1, x0
+    msr spsr_el1, x0        // SPSR = EL0t mode, interrupts masked
 
     // x0 last
     ldr x0, [x11,#0]
+
+    mrs x0, spsr_el1
+    mrs x1, elr_el1
+
+    bl log_spsr_elr
 
     eret
