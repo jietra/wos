@@ -7,6 +7,11 @@
 </p>
 
 ![Status](https://img.shields.io/badge/status-kernel_ready-brightgreen)
+![Hypervisor](https://img.shields.io/badge/hypervisor-in_progress-yellow)
+![Rust](https://img.shields.io/badge/rust-stable_(ferrocene_compatible)-brightgreen)
+![no_std](https://img.shields.io/badge/no_std-yes-blueviolet)
+![Arch](https://img.shields.io/badge/arch-ARM64_&_RISC‑V-orange)
+![Safety](https://img.shields.io/badge/safety_critical-oriented-lightgrey)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 **xWALT** is a clean, lean, multi‑architecture (ARM, RISC-V) virtualization and operating‑system stack written in **Rust**, designed for **safety‑critical embedded systems, robotics, drones, autonomous vehicles**, and **AI‑secure execution environments**.  
