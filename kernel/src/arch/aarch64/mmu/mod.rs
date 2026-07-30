@@ -1,6 +1,7 @@
 // src/arch/aarch64/mmu/mod.rs
 
 pub mod tables;
+pub mod stage2;
 
 pub use tables::{init_page_tables, L0_TABLE, L0_LOW, L0_HIGH};
 

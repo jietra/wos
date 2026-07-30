@@ -23,6 +23,23 @@ It is composed of three layers:
 
 xWALT focuses on **isolation, determinism, memory safety**, and **auditability**, making it suitable for environments where correctness and trust boundaries matter.
 
+---
+
+## What's new (July 2026)
+
+ARM64 Hypervisor (EL2) now supports:
+- Full Stage‑2 MMU
+- Guest memory virtualization (L1/L2/L3 S2 tables)
+- Guest execution via eret into EL1
+- Device virtualization (UART MMIO mapped through S2)
+- S2AP permissions (RW guest access)
+- EL2 exception handling (sync faults, HPFAR decoding)
+- TLB maintenance (TLBI ALLE2)
+
+The hypervisor can now boot a real guest binary, map its memory, map devices, and run it safely under EL2 control.
+
+---
+
 ## Table of Contents
 - [Project Vision](#-project-vision)
 - [Architecture Overview](#-architecture-overview)
@@ -104,10 +121,15 @@ xWALT
 ```
 
 ### ✔ ARM64 / AArch64
-#### Hypervisor (EL2 early bring‑up stage)
-- EL2 boot and CPU initialization
-- EL2 exception vectors
-> hWALT currently provides the firmware‑like EL2 environment and isolation groundwork, but **does not yet implement full virtualization or guest VM management**.
+#### Hypervisor (EL2)
+- EL2 boot, exception vectors
+- Stage‑2 MMU (VTCR, VTTBR, MAIR)
+- S2 page tables (L1/L2/L3)
+- Guest memory mapping
+- Guest device mapping (UART)
+- Guest entry via eret
+- EL2 fault handler (ESR, FAR, HPFAR)
+- TLB invalidation
 #### Kernel (EL1)
 - Full MMU + page tables setup (MAIR, TCR, TTBR0/TTBR1, 4‑level page tables)
 - High‑half kernel mapping
@@ -139,7 +161,10 @@ kernel/src/arch/
 
 ## ✨ Current Features
 ### Hypervisor (hWALT)
-- [ARM64] EL2 initialization
+- [ARM64] Full Stage‑2 MMU
+- [ARM64] Guest execution
+- [ARM64] Device virtualization
+- [ARM64] EL2 exception handling
 ### Kernel (kWALT)
 - Rust kernel (`no_std`, `no_main`)
 - Multi‑arch boot code
@@ -343,9 +368,11 @@ Planned features include:
 >
 >These features are part of the long‑term roadmap and will progressively evolve as xWALT matures.
 ### Hypervisor (hWALT)
+- [x] Stage‑2 MMU
+- [x] Guest execution
 - [ ] RISC‑V HS-mode
 - [ ] VM creation API
-- [ ] Virtual devices
+- [ ] Virtual interrupt controller (VGIC)
 - [ ] Static partitioning mode
 - [ ] Certifiable configuration (no dynamic alloc)
 ### Kernel (kWALT)

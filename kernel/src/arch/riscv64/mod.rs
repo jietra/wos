@@ -2,6 +2,7 @@ pub mod mmio;
 pub mod cpu;
 pub mod boot;
 pub mod syscall;
+pub mod mmu;
 
 use crate::drivers::uart::puts;
 use cpu::exceptions::init_exceptions;

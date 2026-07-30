@@ -24,6 +24,13 @@ SECTIONS
         _exceptions_end = .;
     }
 
+    /* EL2 exception vectors */
+    .exceptions_el2 : ALIGN(2048) {
+        _exceptions_el2_start = .;
+        KEEP(*(.exceptions_el2*))
+        _exceptions_el2_end = .;
+    }
+
     /* Read only data */
     .rodata : ALIGN(4K) {
         _rodata_start = .;
@@ -72,6 +79,17 @@ SECTIONS
         _heap_start = .;
         . = . + 0x100000;   /* e.g. 1 MiB heap */
         _heap_end = .;
+    }
+
+    /* Stage-2 tables (EL2) */
+    .stage2 (NOLOAD) : ALIGN(4096) {
+        _stage2_start = .;
+        . += 0x00040000;   /* 256 KiB */
+        _stage2_end = .;
+    }
+
+    .stage2_root : {
+        *(.stage2_root)   /* S2_ROOT */
     }
 
     /* Kernel global bounds */

@@ -68,11 +68,6 @@ _hboot:
 _stack_top_el2:
     .quad 0                 // linker will place actual value
 
-// EL2 vector table placeholder
-.global _vector_table_el2
-_vector_table_el2:
-    .quad 0                 // we will fill this later
-
 // kernel start.S
 
 .section .text._boot, "ax"

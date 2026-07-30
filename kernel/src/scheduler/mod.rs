@@ -5,3 +5,5 @@ pub use context::Context;
 
 pub mod process;
 pub use process::Process;
+
+pub mod vm;

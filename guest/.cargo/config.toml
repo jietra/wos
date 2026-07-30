@@ -1,0 +1,20 @@
+[unstable]
+build-std = ["core"]
+json-target-spec = true
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"
+
+[toolchain]
+channel = "stable"
+
+[target.aarch64-unknown-none-softfloat]
+linker = "ld.lld"
+rustflags = ["-C", "link-arg=-Tlinker/aarch64.ld",]
+
+[target.riscv64gc-unknown-none-elf]
+linker = "ld.lld"
+rustflags = ["-C", "link-arg=-Tlinker/riscv64.ld"]

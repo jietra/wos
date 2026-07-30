@@ -21,6 +21,13 @@ pub extern "C" fn rust_main() -> ! {
     loop {}
 }
 
+#[cfg(target_arch = "aarch64")]
+#[no_mangle]
+pub extern "C" fn rust_main_el2() -> ! {
+    arch::init_arch_el2();
+    loop {}
+}
+
 // -----------------------------------------------------------------------------
 // Panic handler (required in no_std)
 // -----------------------------------------------------------------------------

@@ -1,16 +1,13 @@
 [package]
-name = "kernel"
+name = "guest"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 
-[profile.dev]
-panic = "abort"
-
 [profile.release]
 panic = "abort"
 lto = true
 
-[build-dependencies]
-cc = "1.0"
+[profile.dev]
+panic = "abort"

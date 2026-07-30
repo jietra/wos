@@ -212,3 +212,126 @@ extern "C" fn log_spsr_elr_svc(spsr: u64, elr: u64) {
     puts("[SVC] RET: SPSR_EL1 = 0x"); put_hex_ln(spsr);
     puts("[SVC] RET: ELR_EL1  = 0x"); put_hex_ln(elr);
 }
+
+// --------
+// EL2
+// --------
+#[no_mangle]
+pub extern "C" fn handle_el2_sync_sp0(esr: u64, far: u64) {
+    crate::uart_println!("[SYNC SP0] EL2 Fault: ESR={}", esr);
+    crate::uart_println!("[SYNC SP0] EL2 Fault: FAR={}", far);
+
+    use crate::arch::mmu::stage2::{S2_ROOT, S2Table};
+    
+    let esr_real: u64;
+    let mut far_real: u64;
+    let mut hpfar: u64;
+    
+    unsafe {
+        core::arch::asm!("mrs {0}, esr_el2", out(reg) esr_real);
+        core::arch::asm!("mrs {0}, far_el2", out(reg) far_real);
+        core::arch::asm!("mrs {0}, hpfar_el2", out(reg) hpfar);
+    }
+    
+    crate::uart_println!("--- S2 FAULT DEBUG ---");
+    crate::uart_println!("[SYNC SP0] \tESR_EL2  = 0x{:016x}", esr_real);
+    crate::uart_println!("[SYNC SP0] \tFAR_EL2  = 0x{:016x}", far_real);
+    crate::uart_println!("[SYNC SP0] \tHPFAR_EL2= 0x{:016x}", hpfar);
+    let ec = (esr_real >> 26) & 0x3F;
+    crate::uart_println!("[SYNC SP0] \tEC       = 0x{:02x}", ec);
+
+    // IPA = HPFAR_EL2[47:12] << 12
+    let ipa = (hpfar & ((1 << 48) - 1)) << 8; // HPFAR_EL2 bits [47:4] → IPA[47:12]
+    crate::uart_println!("[SYNC SP0] \tIPA      = 0x{:016x}", ipa);
+
+    // indices 3 niveaux
+    let i1 = ((ipa >> 30) & 0x1FF) as usize;
+    let i2 = ((ipa >> 21) & 0x1FF) as usize;
+    let i3 = ((ipa >> 12) & 0x1FF) as usize;
+
+    crate::uart_println!("[SYNC SP0] \ti1={}, i2={}, i3={}", i1, i2, i3);
+
+    let l1 = unsafe { S2_ROOT.entries[i1] };
+    crate::uart_println!("[SYNC SP0] \tS2_ROOT[{}] = 0x{:016x}", i1, l1);
+
+    if l1 & 0b11 == 0b11 {
+        let l2_pa = l1 & !0xFFF;
+        let l2 = l2_pa as *const u64;
+        let l2e = unsafe { *l2.add(i2) };
+        crate::uart_println!("[SYNC SP0] \tL2[{}] @ 0x{:016x} = 0x{:016x}", i2, l2_pa, l2e);
+
+        if l2e & 0b11 == 0b11 {
+            let l3_pa = l2e & !0xFFF;
+            let l3 = l3_pa as *const u64;
+            let l3e = unsafe { *l3.add(i3) };
+            crate::uart_println!("[SYNC SP0] \tL3[{}] @ 0x{:016x} = 0x{:016x}", i3, l3_pa, l3e);
+        } else {
+            crate::uart_println!("[SYNC SP0] \tL2[{}] is not a table/page descriptor", i2);
+        }
+    } else {
+        crate::uart_println!("[SYNC SP0] \tS2_ROOT[{}] is not a table descriptor", i1);
+    }
+
+    let mut ttbr0: u64;
+    let mut tcr1: u64;
+    unsafe {
+        core::arch::asm!("mrs {0}, ttbr0_el1", out(reg) ttbr0);
+        core::arch::asm!("mrs {0}, tcr_el1", out(reg) tcr1);
+    }
+    crate::uart_println!("TTBR0_EL1 = 0x{:016x}", ttbr0);
+    crate::uart_println!("TCR_EL1   = 0x{:016x}", tcr1);
+
+
+    crate::uart_println!("--- END S2 FAULT DEBUG ---");
+
+    loop {};
+}
+
+#[no_mangle]
+pub extern "C" fn handle_el2_irq_sp0(esr: u64, far: u64) {
+    crate::uart_println!("[IRQ SP0] ESR={}", esr);
+    crate::uart_println!("[IRQ SP0] FAR={}", far);
+    loop {};
+}
+
+#[no_mangle]
+pub extern "C" fn handle_el2_fiq_sp0(esr: u64, far: u64) {
+    crate::uart_println!("[FIQ SP0] ESR={}", esr);
+    crate::uart_println!("[FIQ SP0] FAR={}", far);
+    loop {};
+}
+
+#[no_mangle]
+pub extern "C" fn handle_el2_serror_sp0(esr: u64, far: u64) {
+    crate::uart_println!("[SERROR SP0] ESR={}", esr);
+    crate::uart_println!("[SERROR SP0] FAR={}", far);
+    loop {};
+}
+
+#[no_mangle]
+pub extern "C" fn handle_el2_sync(esr: u64, far: u64) {
+    crate::uart_println!("[SYNC] EL2 Fault: ESR={}", esr);
+    crate::uart_println!("[SYNC] EL2 Fault: FAR={}", far);
+    loop {};
+}
+
+#[no_mangle]
+pub extern "C" fn handle_el2_irq(esr: u64, far: u64) {
+    crate::uart_println!("[IRQ] ESR={}", esr);
+    crate::uart_println!("[IRQ] FAR={}", far);
+    loop {};
+}
+
+#[no_mangle]
+pub extern "C" fn handle_el2_fiq(esr: u64, far: u64) {
+    crate::uart_println!("[FIQ] ESR={}", esr);
+    crate::uart_println!("[FIQ] FAR={}", far);
+    loop {};
+}
+
+#[no_mangle]
+pub extern "C" fn handle_el2_serror(esr: u64, far: u64) {
+    crate::uart_println!("[SERROR] ESR={}", esr);
+    crate::uart_println!("[SERROR] FAR={}", far);
+    loop {};
+}

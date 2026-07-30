@@ -1,8 +1,8 @@
-# Compilations Rust
+# Rust
 target/
 Cargo.lock
 
-# Fichiers temporaires
+# Temp files
 *.o
 *.obj
 *.bin
@@ -22,7 +22,7 @@ Cargo.lock
 *.sym
 *.lst
 
-# Éditeurs
+# Editor
 .vscode/
 .idea/
 *.swp
@@ -32,6 +32,8 @@ Cargo.lock
 build/
 out/
 
-# 
+# Other
 kernel/virt.dtb
 docs/manifesto*.md
+kernel/src/concat.sh
+kernel/src/repo_concat.txt

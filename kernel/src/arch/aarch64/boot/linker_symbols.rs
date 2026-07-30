@@ -45,4 +45,8 @@ extern "C" {
     // Boot tables
     pub static _boot_tables_start: u8;
     pub static _boot_tables_end: u8;
+
+    // Stage2 tables
+    pub static _stage2_start: u8;
+    pub static _stage2_end: u8;
 }
