@@ -16,6 +16,8 @@ Cargo.lock
 *.vdi
 *.vmdk
 *.nvram
+qemu-virt.dtb
+qemu-virt.dts
 
 # Dumps / traces
 *.map
@@ -32,8 +34,18 @@ Cargo.lock
 build/
 out/
 
+# linux
+images/linux/buildroot/
+images/linux/archive/
+images/linux/rootfs/
+images/linux/initramfs.cpio
+images/linux/rootfs.cpio.gz
+images/linux/rootfs.ext2
+
 # Other
 kernel/virt.dtb
 docs/manifesto*.md
 kernel/src/concat.sh
 kernel/src/repo_concat.txt
+kernel/dump.txt
+

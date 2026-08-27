@@ -49,4 +49,15 @@ extern "C" {
     // Stage2 tables
     pub static _stage2_start: u8;
     pub static _stage2_end: u8;
+
+    pub static _exceptions_el2_start: u8;
+    pub static _exceptions_el2_end: u8;
+    pub static _stack_el2_start: u8;
+    pub static _stage2_root_start: u8;
+    pub static _stage2_root_end: u8;
+    pub static _guest_images_start: u8;
+    pub static _guest_images_end: u8;
+
+    pub static _page_pool_start: u8;
+    pub static _page_pool_end: u8;
 }

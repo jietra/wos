@@ -31,6 +31,11 @@ SECTIONS
         _exceptions_el2_end = .;
     }
 
+    /* Guest EL1 exception vectors */
+    .guest_el1_vectors : ALIGN(0x1000) {
+        KEEP(*(.guest_el1_vectors))
+    }
+
     /* Read only data */
     .rodata : ALIGN(4K) {
         _rodata_start = .;
@@ -81,24 +86,37 @@ SECTIONS
         _heap_end = .;
     }
 
+    /* Page pool section */
+    .page_pool (NOLOAD) : ALIGN(4096) {
+        _page_pool_start = .;
+        . += 0x00800000; /* 8 MiB */
+        _page_pool_end = .;
+    }
+
     /* Stage-2 tables (EL2) */
     .stage2 (NOLOAD) : ALIGN(4096) {
         _stage2_start = .;
-        . += 0x00040000;   /* 256 KiB */
+        . += 0x00600000;   /* 6 MiB: has to be sufficient to support guest kernels */
         _stage2_end = .;
     }
 
-    .stage2_root : {
-        *(.stage2_root)   /* S2_ROOT */
+    /* Stage-2 root */
+    .stage2_root : ALIGN(4096) {
+        _stage2_root_start = .;
+        *(.stage2_root)
+        _stage2_root_end = .;
     }
 
     /* Kernel global bounds */
     _kernel_start = _text_start;
-    _kernel_end   = _heap_end;
+    _kernel_end   = .; /*_heap_end;*/
 
     /* ------------- User section ------------- */
 
-    . = 0x41000000;
+    /*. = 0x41000000;*/
+    /* put user section after kernel, with a margin */
+    . = ALIGN(4K);
+    . = _kernel_end + 0x200000;
 
     .user_text : ALIGN(4K) {
         _user_text_start = .;
@@ -119,4 +137,14 @@ SECTIONS
         _user_stack_end = .;
         _user_stack_top = _user_stack_end - 0x10; /* safe top */
     }
+
+    /* ------------- Guest section ------------- */
+    /* Not used for now */
+    .guest_images (NOLOAD) : ALIGN(4K) {
+        _guest_images_start = .;
+        KEEP(*(.guest_images))
+        _guest_images_end = .;
+    }
+
+
 }

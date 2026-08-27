@@ -19,7 +19,7 @@ pub mod cntp {
     pub unsafe fn init() {
         crate::uart_println!("| INIT. | Init cntp...");
         core::arch::asm!("mrs {}, cntfrq_el0", out(reg) FREQ);
-        crate::uart_println!("\tFREQ=",FREQ);
+        crate::uart_println!("\tFREQ = {}",FREQ);
         TICKS = FREQ / TIMER_FREQ;
 
         write_cntp_tval(TICKS); // set "ticks" at cntfrq_el0 frequency i.e. frequency at 1 Hz (use (FREQ/10) for 10Hz etc.)

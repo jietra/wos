@@ -10,11 +10,39 @@ const S2_MEMATTR_DEVICE: u64 = 1;           // Attr1
 const S2_SH_INNER:       u64 = 0;           // non-shareable as of now
 const S2_AF:             u64 = 1 << 10;
 
+#[derive(Copy, Clone)]
+pub enum Perm {
+    RX,
+    RW,
+}
+
 #[repr(C, align(4096))]
 pub struct S2Table {
     pub entries: [u64; 512],
 }
+
 pub struct AArch64Vm;
+
+impl S2Table {
+    pub const fn new() -> Self {
+        S2Table { entries: [0; 512] }
+    }
+
+    pub fn map_range(&mut self, ipa_start: u64, ipa_end: u64, pa_start: u64, _perm: Perm) {
+        let mut ipa = ipa_start;
+        let mut pa  = pa_start;
+
+        while ipa <= ipa_end {
+            unsafe { map_ipa_page(ipa, pa); }
+            ipa += 0x1000;
+            pa  += 0x1000;
+        }
+    }
+
+    pub fn map_device(&mut self, ipa: u64, pa: u64) {
+        unsafe { map_ipa_page_device(ipa, pa); }
+    }
+}
 
 impl VmArch for AArch64Vm {
     fn map_page(ipa: u64, pa: u64) {
@@ -133,7 +161,7 @@ pub unsafe fn init_hcr() {
     // read current hcr
     let mut hcr: u64;
     core::arch::asm!("mrs {}, hcr_el2", out(reg) hcr);
-    crate::uart_println!("\tcurrent HCR_EL2 ={}", hcr);
+    crate::uart_println!("\tcurrent HCR_EL2 =0x{}", hcr);
     
     // load new hcr
     let hcr_new: u64 =
@@ -145,7 +173,7 @@ pub unsafe fn init_hcr() {
         (1 << 7);   // AMO : allow data accesses
 
     core::arch::asm!("msr hcr_el2, {}", in(reg) hcr_new);
-    crate::uart_println!("\tnew HCR_EL2     ={}", hcr_new);
+    crate::uart_println!("\tnew HCR_EL2     =0x{}", hcr_new);
 }
 
 // ------------------------
@@ -189,17 +217,6 @@ pub unsafe fn map_ipa_page(ipa: u64, pa: u64) {
 
     (*l3).entries[i3] = desc;
 
-    // Check (debug)
-    if ipa == 0x4000_0000 {
-        crate::uart_println!(
-            "\t\ti2 for IPA 0x40000000 = 0x{:016x}",
-            i2
-        );
-        crate::uart_println!(
-            "\t\tS2 L2[i2] for IPA 0x40000000 = 0x{:016x}",
-            desc
-        );
-    }
 }
 
 pub unsafe fn map_ipa_page_device(ipa: u64, pa: u64) {
@@ -239,16 +256,24 @@ pub unsafe fn map_ipa_page_device(ipa: u64, pa: u64) {
 
     (*l3).entries[i3] = desc;
 
-    // Check (debug)
-    if ipa == 0x4000_0000 {
-        crate::uart_println!(
-            "\t\ti2 for IPA 0x40000000 = 0x{:016x}",
-            i2
-        );
-        crate::uart_println!(
-            "\t\tS2 L2[i2] for IPA 0x40000000 = 0x{:016x}",
-            desc
-        );
+    if ipa == 0x42010000 || ipa == 0x42000000 || ipa == 0x4010000 {
+        crate::uart_println!("--- S2 DEBUG MAP ---");
+        crate::uart_println!("IPA = 0x{:016x}", ipa);
+        crate::uart_println!("  L1 index = {}", i1);
+        crate::uart_println!("  L2 index = {}", i2);
+        crate::uart_println!("  L3 index = {}", i3);
+
+        crate::uart_println!("  S2_ROOT[i1] = 0x{:016x}", S2_ROOT.entries[i1]);
+
+        let l2_pa = S2_ROOT.entries[i1] & !0xFFF;
+        let l2 = l2_pa as *const S2Table;
+        crate::uart_println!("  L2[i2] = 0x{:016x}", (*l2).entries[i2]);
+
+        let l3_pa = (*l2).entries[i2] & !0xFFF;
+        let l3 = l3_pa as *const S2Table;
+        crate::uart_println!("  L3[i3] = 0x{:016x}", (*l3).entries[i3]);
+
+        crate::uart_println!("--- END S2 DEBUG MAP ---");
     }
 }
 

@@ -7,14 +7,17 @@
 </p>
 
 ![Status](https://img.shields.io/badge/status-kernel_ready-brightgreen)
-![Hypervisor](https://img.shields.io/badge/hypervisor-in_progress-yellow)
+![Status](https://img.shields.io/badge/status-hypervisor_core_ready-brightgreen)
+![Hypervisor](https://img.shields.io/badge/hypervisor-Type_I_(bare_metal)-blue)
+![Kernel](https://img.shields.io/badge/kernel-stable-brightgreen)
+![Userland](https://img.shields.io/badge/userland-early_stage-yellow)
 ![Rust](https://img.shields.io/badge/rust-stable_(ferrocene_compatible)-brightgreen)
 ![no_std](https://img.shields.io/badge/no_std-yes-blueviolet)
 ![Arch](https://img.shields.io/badge/arch-ARM64_&_RISC‑V-orange)
 ![Safety](https://img.shields.io/badge/safety_critical-oriented-lightgrey)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
-**xWALT** is a clean, lean, multi‑architecture (ARM, RISC-V) virtualization and operating‑system stack written in **Rust**, designed for **safety‑critical embedded systems, robotics, drones, autonomous vehicles**, and **AI‑secure execution environments**.  
+**xWALT** is a **lean Type‑I (bare-metal) hypervisor for safety‑critical embedded systems**. It is a clean, multi‑architecture (ARM, RISC-V) virtualization and operating‑system stack written in **Rust**, targetting **robotics, drones, autonomous vehicles**, and **AI‑secure execution environments**.  
 
 It is composed of three layers:
 - **hWALT** — a minimal, certifiable-friendly **hypervisor** (ARM EL2, RISC‑V HS-mode planned)
@@ -25,32 +28,35 @@ xWALT focuses on **isolation, determinism, memory safety**, and **auditability**
 
 ---
 
-## What's new (July 2026)
+## 🚀 What's new (August 2026)
 
-ARM64 Hypervisor (EL2) now supports:
-- Full Stage‑2 MMU
-- Guest memory virtualization (L1/L2/L3 S2 tables)
-- Guest execution via eret into EL1
-- Device virtualization (UART MMIO mapped through S2)
-- S2AP permissions (RW guest access)
-- EL2 exception handling (sync faults, HPFAR decoding)
-- TLB maintenance (TLBI ALLE2)
+### ✔ Hypervisor milestone achieved
 
-The hypervisor can now boot a real guest binary, map its memory, map devices, and run it safely under EL2 control.
+hWALT (EL2) is now capable of **booting a real guest Linux kernel** under full Stage‑2 virtualization.
+
+This marks the transition from “hypervisor bring‑up” to a **functional virtualization layer**:
+- Stage‑2 MMU fully operational (L1/L2/L3)
+- Guest memory virtualization stable
+- Guest device mapping (UART MMIO)
+- EL2 exception pipeline validated
+- Clean EL2 → EL1 → EL0 transition
+- Guest execution via eret confirmed
+- Deterministic control flow under EL2 supervision
+
+This is one of the **largest milestone** of the project so far.
+Everything that follows is now refinement, hardening, and feature expansion.
 
 ---
 
 ## Table of Contents
 - [Project Vision](#-project-vision)
 - [Architecture Overview](#-architecture-overview)
-- [Current Features](#-current-features)
 - [Project Structure](#-project-structure)
 - [Prerequisites](#-prerequisites)
 - [Build Instructions](#build-instructions-)
 - [Run in QEMU (ARM64)](#️-run-in-qemu-arm64)
 - [Run in QEMU (RISC-V)](#️-run-in-qemu-risc-v)
-- [Current Status](#-current-status)
-- [Roadmap](#️-roadmap-kernel)
+- [Current Status and Roadmap](#-current-status-and-roadmap)
 - [Contributing](#-contributing)
 - [License](#-license)
 
@@ -157,33 +163,6 @@ kernel/src/arch/
   ├── aarch64/
   └── riscv64/
 ```
----
-
-## ✨ Current Features
-### Hypervisor (hWALT)
-- [ARM64] Full Stage‑2 MMU
-- [ARM64] Guest execution
-- [ARM64] Device virtualization
-- [ARM64] EL2 exception handling
-### Kernel (kWALT)
-- Rust kernel (`no_std`, `no_main`)
-- Multi‑arch boot code
-- [ARM64] MMU + page tables
-- [ARM64] High‑half virtual memory
-- [ARM64] Page allocator
-- [ARM64] Exception handling (synchronous exceptions, data aborts, FP/SIMD traps)
-- [ARM64] GICv2 interrupt subsystem
-- [ARM64] Scheduler (round‑robin)
-- [ARM64] Full context switching
-- [ARM64] Timer interrupts
-- [RISC‑V] trap handling (mstatus, mtvec, mepc, mcause, mtval)
-### Userland (uWALT)
-- Dedicated user stack
-- User text/data sections
-- Syscalls (svc / ecall)
-- Minimal shell
-- Architecture‑specific syscall ABI
-- Clean separation from kernel
 
 ---
 
@@ -244,58 +223,32 @@ On Apple Silicon, use `UTM` for stable virtualization.
 cd kernel
 cargo +stable build --target aarch64-unknown-none-softfloat
 ```
-> Nightly-only alternative (not certifiable): `cargo build --target targets/aarch64-wos.json`
 
 ### RISC‑V (Rust stable)
 ```bash
 cd kernel
 cargo +stable build --target riscv64gc-unknown-none-elf
 ```
-> Nightly-only alternative (not certifiable): `cargo build --target targets/riscv64-wos.json`
 
 ---
 
 ## ▶️ Run in QEMU (ARM64)
-Generate the QEMU virt machine DTB once in the `kernel` Directory:
-```bash
-qemu-system-aarch64 \
-    -M virt \
-    -cpu cortex-a72 \
-    -machine dumpdtb=virt.dtb \
-    -nographic
-```
 ### Kernel (EL1)
 ```bash
 qemu-system-aarch64 \
     -M virt \
-    -cpu cortex-a72 \
+    -cpu cortex-a57 \
+    -m 1024M \
     -kernel target/aarch64-unknown-none-softfloat/debug/kernel \
-    -dtb virt.dtb \
-    -nographic`
-```
-
-> Nightly-only JSON target: `qemu-system-aarch64 -M virt -cpu cortex-a72 -kernel target/aarch64-wos/debug/kernel -dtb virt.dtb -nographic`
-
-#### Optional: build a raw image
-```bash
-llvm-objcopy --strip-all -O binary \
-    target/aarch64-unknown-none-softfloat/debug/kernel kernel8.img
-```
-Run:
-```bash
-qemu-system-aarch64 \
-    -M virt \
-    -cpu cortex-a72 \
-    -kernel kernel8.img \
     -nographic
 ```
 ### Hypervisor (EL2)
 ```bash
 qemu-system-aarch64 \
     -M virt,virtualization=on \
-    -cpu cortex-a72 \
+    -cpu cortex-a57 \
+    -m 1024M \
     -kernel target/aarch64-unknown-none-softfloat/debug/kernel \
-    -dtb virt.dtb \
     -nographic
 ```
 
@@ -310,14 +263,6 @@ qemu-system-riscv64 \
     -nographic \
     -bios none
 ```
-> Nightly-only JSON target: 
-`qemu-system-riscv64 \
-    -M virt \
-    -cpu rv64 \
-    -kernel target/riscv64-wos/debug/kernel \
-    -nographic \
-    -bios none`
-
 ---
 
 ## 🧵 Scheduler & Context Switching (ARM64)
@@ -348,44 +293,34 @@ Separating the PCB from the CPU context ensures:
 
 ---
 
-## 📌 Current Status
-kWALT[ARM64] is stable.
-uWALT[ARM64] is at an early stage (first syscall).
-hWALT[ARM64] and kWALT[RISC‑V] are in early bring‑up.
-
----
-
-## 🗺️ Roadmap
-> 🚧 **Current Limitations**  
-hWALT is a minimal, deterministic EL2 hypervisor designed for research, education, and safety‑critical experimentation.
-It is **not yet a full virtualization stack**.  
-Planned features include:
->- **Stage‑2 translation (second‑level MMU)** for full guest memory virtualization
->- **Virtual interrupt controller (VGIC)** for proper guest interrupt routing
->- **Guest VM creation and scheduling**
->- **IOMMU / SMMU support** for DMA isolation  
->- **Hardware‑assisted isolation for AI workloads** (AI‑Secure vision)
->
->These features are part of the long‑term roadmap and will progressively evolve as xWALT matures.
-### Hypervisor (hWALT)
-- [x] Stage‑2 MMU
-- [x] Guest execution
-- [ ] RISC‑V HS-mode
-- [ ] VM creation API
+## 📌 Current Status and Roadmap
+### Hypervisor (hWALT — ARM64)
+- [x] EL2 boot + exception vectors
+- [x] Stage‑2 MMU (VTCR, VTTBR, MAIR)
+- [x] Guest memory mapping (IPA → PA)
+- [x] Guest device virtualization (UART)
+- [x] Guest execution (Linux boots)
+- [x] EL2 fault handling (ESR, FAR, HPFAR)
+- [x] TLB maintenance (TLBI ALLE2)
 - [ ] Virtual interrupt controller (VGIC)
 - [ ] Static partitioning mode
-- [ ] Certifiable configuration (no dynamic alloc)
-### Kernel (kWALT)
+- [ ] RISC‑V HS-mode
+### Kernel (kWALT — ARM64)
+- [x] Full MMU + high‑half mapping
+- [x] Scheduler (round‑robin)
+- [x] Context switching
+- [x] Timer interrupts
+- [x] Syscall ABI
 - [ ] Per‑process TTBR0
 - [ ] ELF loader
 - [ ] VirtIO drivers
 - [ ] IPC primitives
-### Userland (uWALT)
-- [ ] Minimal libc
+### Userland (uWALT — ARM64)
+- [x] User text/data sections
+- [x] Dedicated EL0 stack
+- [x] Syscalls (svc)
 - [ ] Shell commands
-- [ ] Process spawning
 - [ ] File system prototype
-
 ---
 
 ## 🤝 Contributing

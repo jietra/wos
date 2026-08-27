@@ -17,9 +17,9 @@ fn main() {
     if arch == "aarch64" {
         cc::Build::new()
             .file("src/arch/aarch64/boot/start.S")
-            //.file("src/arch/aarch64/boot/hstart.S")
             .file("src/arch/aarch64/cpu/exception_vectors.S")
             .file("src/arch/aarch64/cpu/el2_vectors.S")
+            //.file("src/arch/aarch64/cpu/guest_el1_vector.S")
             .file("src/arch/aarch64/cpu/switch.S")
             .compiler("clang")
             .flag("--target=aarch64-unknown-elf")

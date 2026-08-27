@@ -12,6 +12,7 @@ mod time;
 mod scheduler;
 mod tasks;
 mod user;
+mod config;
 
 use core::panic::PanicInfo;
 

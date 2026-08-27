@@ -31,7 +31,7 @@ pub unsafe fn init_processes() {
     //crate::uart_println!("\tPID0 (kernel): ", p0);
     //crate::uart_println!("\tPID1 (kernel): ", p1);
     //crate::uart_println!("\tPID2 (kernel): ", p2);
-    crate::uart_println!("\tPID3 (user)  : ", ps);
+    crate::uart_println!("\tPID3 (user)  : {}", ps);
 
     use core::mem::size_of;
     crate::uart_println!("\tsizeof(Context) = {}", size_of::<Context>());
@@ -46,15 +46,15 @@ pub unsafe fn init_processes() {
 pub unsafe fn start_first_proc_rust() {
     crate::uart_println!("| CHECK | Launching processe(s)...");
     
-    crate::uart_println!("\ttext_start       = 0x", &ls::_text_start as *const _ as u64);
-    crate::uart_println!("\ttext_end         = 0x", &ls::_text_end   as *const _ as u64);
-    crate::uart_println!("\tbss_end          = 0x", &ls::_bss_end    as *const _ as u64);
-    crate::uart_println!("\tuser_text_start  = 0x", &ls::_user_text_start as *const _ as u64);
-    crate::uart_println!("\tuser_text_end    = 0x", &ls::_user_text_end   as *const _ as u64);
-    crate::uart_println!("\tuser_data_start  = 0x", &ls::_user_data_start as *const _ as u64);
-    crate::uart_println!("\tuser_data_end    = 0x", &ls::_user_data_end   as *const _ as u64);
-    crate::uart_println!("\tuser_stack_start = 0x", &ls::_user_stack_start as *const _ as u64);
-    crate::uart_println!("\tuser_stack_top   = 0x", &ls::_user_stack_top as *const _ as u64);
+    crate::uart_println!("\ttext_start       = 0x{}", &ls::_text_start as *const _ as u64);
+    crate::uart_println!("\ttext_end         = 0x{}", &ls::_text_end   as *const _ as u64);
+    crate::uart_println!("\tbss_end          = 0x{}", &ls::_bss_end    as *const _ as u64);
+    crate::uart_println!("\tuser_text_start  = 0x{}", &ls::_user_text_start as *const _ as u64);
+    crate::uart_println!("\tuser_text_end    = 0x{}", &ls::_user_text_end   as *const _ as u64);
+    crate::uart_println!("\tuser_data_start  = 0x{}", &ls::_user_data_start as *const _ as u64);
+    crate::uart_println!("\tuser_data_end    = 0x{}", &ls::_user_data_end   as *const _ as u64);
+    crate::uart_println!("\tuser_stack_start = 0x{}", &ls::_user_stack_start as *const _ as u64);
+    crate::uart_println!("\tuser_stack_top   = 0x{}", &ls::_user_stack_top as *const _ as u64);
 
     let va = &ls::_user_stack_top as *const u8 as u64;
     let l0 = ((va >> 39) & 0x1FF) as usize;

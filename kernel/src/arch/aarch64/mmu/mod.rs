@@ -19,11 +19,11 @@ pub unsafe fn init_mair() {
         (0xFF << 16);    // Attr2 = Normal Write-Back Cacheable
     */
     let mut mair_value: u64 = (0x00 << 0);   // Attr0 = Device-nGnRnE
-    crate::uart_println!("\t\tMAIR_EL1 Attr0 (0x00 << 0) Device-nGnRnE                =", mair_value);
+    crate::uart_println!("\t\tMAIR_EL1 Attr0 (0x00 << 0) Device-nGnRnE                = {}", mair_value);
     mair_value |= (0x44 << 8);   // Attr1 = Normal Non-Cacheable
-    crate::uart_println!("\t\tMAIR_EL1 Attr1 (0x44 << 8) Normal Non-Cacheable         =", mair_value);
+    crate::uart_println!("\t\tMAIR_EL1 Attr1 (0x44 << 8) Normal Non-Cacheable         = {}", mair_value);
     mair_value |= (0xFF << 16);  // Attr2 = Normal Write-Back Cacheable
-    crate::uart_println!("\t\tMAIR_EL1 Attr2 (0xFF << 16) Normal Write-Back Cacheable =", mair_value);
+    crate::uart_println!("\t\tMAIR_EL1 Attr2 (0xFF << 16) Normal Write-Back Cacheable = {}", mair_value);
 
     core::arch::asm!(
         "msr MAIR_EL1, {0}",
@@ -68,7 +68,7 @@ pub unsafe fn init_tcr() {
     let irgn0: u64 = (0b01 << 8 );              // IRGN0 = Write-back cacheable
     // TTBR1 (high VA)
     let t1sz : u64 = (16   << 16);              // T1SZ = 48-bit VA
-    let tg1  : u64 = (0b10 << 30);              // TG1 = 4KB (note: encoding different from TG0)
+    let tg1  : u64 = (0b00 << 30); // 4 KiB vs (0b10 << 30);              // TG1 = 4KB (note: encoding different from TG0)
     let sh1  : u64 = (0b11 << 28);              // SH1 = Inner Shareable
     let orgn1: u64 = (0b01 << 26);              // ORGN1 = WB
     let irgn1: u64 = (0b01 << 24);              // IRGN1 = WB
@@ -83,7 +83,7 @@ pub unsafe fn init_tcr() {
     crate::uart_println!("\t\tIRGN0 (0b01  << 8 )   = 0x{:016x}", irgn0);
     crate::uart_println!("\t\t--- TTBR1 (high VA) ---");
     crate::uart_println!("\t\tT1SZ  (16    << 16)   = 0x{:016x}", t1sz);    
-    crate::uart_println!("\t\tTG1   (0b10  << 30)   = 0x{:016x}", tg1);     
+    crate::uart_println!("\t\tTG1   (0b00  << 30)   = 0x{:016x}", tg1);     
     crate::uart_println!("\t\tSH1   (0b11  << 28)   = 0x{:016x}", sh1);     
     crate::uart_println!("\t\tORGN1 (0b01  << 26)   = 0x{:016x}", orgn1);   
     crate::uart_println!("\t\tIRGN1 (0b01  << 24)   = 0x{:016x}", irgn1);
@@ -127,7 +127,7 @@ pub unsafe fn init_ttbr0() {
     crate::uart_println!("\t\tKernel VA = 0x{:016x}", k_va);
     crate::uart_println!("\t\tKernel PA = 0x{:016x}", k_pa);
     crate::uart_println!("\t\tL0_LOW PA = 0x{:016x}", l0_pa);
-    
+
     core::arch::asm!(
         "msr TTBR0_EL1, {0}",
         in(reg) l0_pa,
@@ -227,7 +227,7 @@ pub unsafe fn enable_mmu() {
         out(reg) sctlr,
         options(nostack, preserves_flags),
     );
-    crate::uart_println!("\t\tSCTLR_EL1 before MMU = 0x{:016x}", sctlr);
+    crate::uart_println!("\t\tSCTLR_EL1 before MMU  = 0x{:016x}", sctlr);
 
     // Enable MMU (M), data cache (C), and instruction cache (I)
     sctlr |= 1 << 0;   // M
@@ -331,7 +331,7 @@ extern "C" {
 pub unsafe fn set_vbar_in_va() {
     let mut vbar: u64;
     core::arch::asm!("mrs {0}, VBAR_EL1", out(reg) vbar);
-    crate::uart_println!("\t\tVBAR_EL1 before set vbar in va @ 0x", vbar);
+    crate::uart_println!("\t\tVBAR_EL1 before set vbar in va @ 0x{}", vbar);
 
     let exc_phys = &_exceptions_start as *const u8 as u64;
     let exc_virt = phys_to_kernel_virt(exc_phys); // same logic as for .text
@@ -343,10 +343,10 @@ pub unsafe fn set_vbar_in_va() {
     );
 
     core::arch::asm!("mrs {0}, VBAR_EL1", out(reg) vbar);
-    crate::uart_println!("\t\tVBAR_EL1 after  set vbar in va @ 0x", vbar);
+    crate::uart_println!("\t\tVBAR_EL1 after  set vbar in va @ 0x{}", vbar);
 
-    crate::uart_println!("\t\texceptions phys address = ", exc_phys);
-    crate::uart_println!("\t\texceptions virt address = ", exc_virt);
+    crate::uart_println!("\t\texceptions phys address = {}", exc_phys);
+    crate::uart_println!("\t\texceptions virt address = {}", exc_virt);
 }
 
 pub fn phys_to_kernel_virt(pa: u64) -> u64 {

@@ -3,7 +3,7 @@
 use crate::arch::aarch64::boot::linker_symbols as ls;
 use crate::memory::memory_layout::layout::{DEVICE_BASE, KERNEL_BASE, KERNEL_HEAP_BASE};
 use crate::memory::virt::{l0_index, l1_index, l2_index, l3_index};
-use crate::memory::phys::alloc_page;
+use crate::memory::phys::alloc_page_table;
 
 // -----------------------------------------------------------------------------
 // Minimal page tables
@@ -212,7 +212,7 @@ unsafe fn identity_map_boot_region() {
     let ks = kernel_start_phys();
     //let ke = &ls::_stack_top as *const u8 as u64;
     let ke = &ls::_kernel_end as *const u8 as u64;
-    let ke_extended = (ke + 0x200000) & !0xFFF; // +2 MiB, aligned
+    let ke_extended = (ke + 0x200000) & !0xFFF;
 
     crate::uart_println!("\t\t\tidentity: ks=0x{:016x}", ks);
     crate::uart_println!("\t\t\tidentity: ke=0x{:016x}", ke);
@@ -227,6 +227,8 @@ unsafe fn identity_map_boot_region() {
         0b00
     );
 
+    crate::uart_println!("\t\t\tidentity: kernel mapped at 0x{:016x}", ks);
+
     // Identity map UART (for early prints)
     map_region(
         &mut L0_LOW,
@@ -238,6 +240,7 @@ unsafe fn identity_map_boot_region() {
         0b00
     );
 
+    crate::uart_println!("\t\t\tidentity: UART mapped at 0x0900_0000");
 }
 
 // -----------------------------------------------------------------------------
@@ -306,21 +309,24 @@ pub unsafe fn map_region(l0: &mut PageTable, va_start: u64, pa_start: u64, size:
 
         // --- L0 ---
         if l0.0[i0] == 0 {
-            let new_l1_pa = alloc_page().expect("alloc L1 failed");
+            //let new_l1_pa = alloc_page().expect("alloc L1 failed");
+            let new_l1_pa = alloc_page_table().expect("alloc L1 failed") as u64;
             l0.0[i0] = new_l1_pa | 0b11;
         }
         let l1 = (l0.0[i0] & !0xFFF) as *mut u64;
 
         // --- L1 ---
         if unsafe { *l1.add(i1) } == 0 {
-            let new_l2_pa = alloc_page().expect("alloc L2 failed");
+            //let new_l2_pa = alloc_page().expect("alloc L2 failed");
+            let new_l2_pa = alloc_page_table().expect("alloc L2 failed") as u64;
             unsafe { *l1.add(i1) = new_l2_pa | 0b11 };
         }
         let l2 = unsafe { (*l1.add(i1) & !0xFFF) as *mut u64 };
 
         // --- L2 ---
         if unsafe { *l2.add(i2) } == 0 {
-            let new_l3_pa = alloc_page().expect("alloc L3 failed");
+            //let new_l3_pa = alloc_page().expect("alloc L3 failed");
+            let new_l3_pa = alloc_page_table().expect("alloc L3 failed") as u64;
             unsafe { *l2.add(i2) = new_l3_pa | 0b11 };
         }
         let l3 = unsafe { (*l2.add(i2) & !0xFFF) as *mut u64 };
@@ -345,7 +351,7 @@ pub fn l3_page_entry(phys: u64, attr: u64, exec: bool, ap: u64) -> u64 {
         0b11;                               // VALID + PAGE
 
     if !exec {
-        desc |= (1 << 54) | (1 << 53); // PXN + UXN
+        desc |= (1 << 54) | (1 << 53);      // PXN + UXN
     }
 
     desc

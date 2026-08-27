@@ -17,8 +17,8 @@ pub extern "C" fn irq_handle_and_schedule(current: usize) -> usize {
         // read GICC_IAR
         let iar = gicv2::ack();
         let id  = iar & 0x3FF;
-        crate::uart_println!("\t[IRQ] iar=0x{:08x}", iar);
-        crate::uart_println!("\t[IRQ] id =      {}", id);
+        crate::uart_println!("\t[IRQ] iar= 0x{:08x}", iar);
+        crate::uart_println!("\t[IRQ] id = {}", id);
 
         let next = match id {
             timer::TIMER_IRQ => {

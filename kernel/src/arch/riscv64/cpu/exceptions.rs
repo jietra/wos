@@ -49,9 +49,9 @@ pub extern "C" fn trap_handler(tf: *mut u8) {
     }
 
     uart_println!("\t>>> TRAP <<<");
-    uart_println!("\t\tmcause = ", mcause);
-    uart_println!("\t\tmepc   = ", mepc);
-    uart_println!("\t\tmtval  = ", mtval);
+    uart_println!("\t\tmcause = {}", mcause);
+    uart_println!("\t\tmepc   = {}", mepc);
+    uart_println!("\t\tmtval  = {}", mtval);
 
     let is_interrupt = mcause >> (core::mem::size_of::<usize>() * 8 - 1);
     let code = mcause & ((1 << (core::mem::size_of::<usize>() * 8 - 1)) - 1);
@@ -66,9 +66,9 @@ pub extern "C" fn trap_handler(tf: *mut u8) {
 fn handle_exception(code: usize, mut mepc: usize, mtval: usize) {
     //uart_println!("EXCEPTION code={} mepc={} mtval={}", code, mepc, mtval);
     uart_println!("\tEXCEPTION CAUGHT:");
-    uart_println!("\t\t  code=", code as u64);
-    uart_println!("\t\t  mepc=", mepc as u64);
-    uart_println!("\t\t  mtval=", mtval as u64);
+    uart_println!("\t\t  code  = {}", code as u64);
+    uart_println!("\t\t  mepc  = {}", mepc as u64);
+    uart_println!("\t\t  mtval = {}", mtval as u64);
     
     // Skip faulty instruction
     mepc += 4;

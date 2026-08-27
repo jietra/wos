@@ -1,0 +1,89 @@
+/dts-v1/;
+
+/ {
+    compatible = "xwalt,guest1";
+    #address-cells = <2>;
+    #size-cells = <2>;
+
+    chosen {
+        bootargs = "console=ttyAMA0,115200 earlycon=pl011,0x09000000";
+        stdout-path = &uart0;
+
+        linux,initrd-start = <0x0 0x43000000>;
+        linux,initrd-end   = <0x0 0x4358f3ff>;
+    };
+
+    cpus {
+        #address-cells = <1>;
+        #size-cells = <0>;
+        cpu0: cpu@0 {
+            device_type = "cpu";
+            compatible = "arm,cortex-a57";
+            reg = <0x0>;
+        };
+    };
+
+    memory@40000000 {
+        device_type = "memory";
+        reg = <0x0 0x40000000 0x0 0x30000000>;
+    };
+
+    intc: interrupt-controller@8000000 {
+        compatible = "arm,gic-400";
+        #interrupt-cells = <3>;
+        interrupt-controller;
+        reg = <0x0 0x08000000 0x0 0x1000>,
+              <0x0 0x08010000 0x0 0x2000>;
+    };
+
+    timer@0 {
+        compatible = "arm,armv8-timer";
+        reg = <0x0 0x0 0x0 0x0>;            // timer has no MMIO, but reg has to be set
+        interrupt-parent = <&intc>;
+        interrupts = <1 13 4>, <1 14 4>, <1 11 4>, <1 10 4>;
+    };
+
+    uart0: serial@9000000 {
+        compatible = "arm,pl011", "arm,primecell";
+        reg = <0x0 0x09000000 0x0 0x1000>;
+
+        interrupts = <0 1 4>;               // SPI 1 like in QEMU
+        interrupt-parent = <&intc>;
+
+        clock-names = "uartclk", "apb_pclk";
+        clocks = <&clk>, <&clk>;            // use 2 fake clocks
+    };
+
+    clk: clock {                            // fake clock
+        compatible = "fixed-clock";
+        #clock-cells = <0>;
+        clock-frequency = <24000000>;
+    };
+
+    pcie@10000000 {
+        status = "disabled";
+        compatible = "pci-host-ecam-generic";
+        device_type = "pci";
+        #address-cells = <3>;
+        #size-cells = <2>;
+
+        reg = <0x0 0x10000000 0x0 0x01000000>;      // ECAM
+
+        bus-range = <0x0 0xff>;
+
+        ranges = <0x02000000 0x0 0x70000000   0x0 0x70000000   0x0 0x10000000>,     // MEM outside RAM
+                <0x01000000 0x0 0x00000000   0x0 0x00000000   0x0 0x00100000>;      // IO
+
+        dma-coherent;
+    };
+
+    virtio_mmio@a000000 {
+        status = "disabled";
+        dma-coherent;
+        compatible = "virtio,mmio";
+        reg = <0x0 0x0a000000 0x0 0x200>;
+        interrupt-parent = <&intc>;
+        interrupts = <0 16 1>;              // same as QEMU : <0x00 0x10 0x01>
+    };
+
+};
