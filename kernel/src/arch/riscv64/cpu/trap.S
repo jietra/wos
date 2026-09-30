@@ -5,9 +5,6 @@
     .extern trap_handler
 
 trap_entry:
-    la a0, trap_msg      # a0, not t0
-    call asm_puts
-
     # Allocate a trap frame on the stack
     addi sp, sp, -256
 
@@ -42,6 +39,10 @@ trap_entry:
     sd t4, 216(sp)
     sd t5, 224(sp)
     sd t6, 232(sp)
+
+    # Logging may clobber caller-saved registers; preserve interrupted state first.
+    la a0, trap_msg
+    call asm_puts
 
     # Appeler le handler Rust avec sp comme argument
     mv a0, sp           # ++
