@@ -1,6 +1,8 @@
 // build.rs
 
 fn main() {
+    println!("cargo:rerun-if-changed=src/arch/riscv64/boot/start.S");
+    println!("cargo:rerun-if-changed=src/arch/riscv64/cpu/trap.S");
     let arch = std::env::var("CARGO_CFG_TARGET_ARCH").unwrap();
 
     if arch == "riscv64" {
